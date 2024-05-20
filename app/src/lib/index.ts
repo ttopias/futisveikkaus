@@ -8,6 +8,14 @@ import TeamInTable from '$lib/components/TeamInTable.svelte';
 import TimeInTable from '$lib/components/TimeInTable.svelte';
 import Trigger from '$lib/components/Trigger.svelte';
 
+export type Guess = {
+  user_id: User;
+  guess_id: number;
+  match: Match;
+  home_goals: number;
+  away_goals: number;
+};
+
 export type Match = {
   match_id: number;
   predictable_until: string;

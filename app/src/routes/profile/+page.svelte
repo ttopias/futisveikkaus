@@ -9,7 +9,7 @@
   let loading = false;
 </script>
 
-<div class="glass my-4 rounded-lg p-4">
+<div class="glass my-4 p-4 border-inherit shadow-lg rounded-xl">
   <form
     id="edit"
     class="w-full max-w-sm"

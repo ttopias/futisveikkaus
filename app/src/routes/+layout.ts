@@ -2,7 +2,7 @@ import { PUBLIC_DEV, PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SUPABASE_URL } from '$env/
 import type { LayoutLoad } from './$types';
 import { createBrowserClient, isBrowser, parse } from '@supabase/ssr';
 import { injectSpeedInsights } from '@vercel/speed-insights/sveltekit';
-import { inject } from '@vercel/analytics'
+import { inject } from '@vercel/analytics';
 
 injectSpeedInsights();
 inject({ mode: PUBLIC_DEV ? 'development' : 'production' });

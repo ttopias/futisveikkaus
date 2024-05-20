@@ -33,10 +33,10 @@
   }
 </script>
 
-<div in:fade class="glass flex my-8 rounded-btn shadow-lg">
+<div in:fade class="card glass my-8 rounded-btn shadow-lg">
   <div class="flex my-auto w-1/2">
     <div>
-      <div class="card w-full max-w-sm shadow-2xl">
+      <div class="w-full max-w-sm">
         {#if $logo}
           <a href="/"><img class="mx-12 mt-10" alt="logo" src={$logo} /></a>
         {/if}

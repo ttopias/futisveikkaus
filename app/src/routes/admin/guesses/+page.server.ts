@@ -112,7 +112,7 @@ export const actions: Actions = {
       .match({ guess_id });
 
     if (res.error) {
-      return fail(400, { 
+      return fail(400, {
         error: res.error.message,
         failure: true,
         values: {
@@ -124,7 +124,7 @@ export const actions: Actions = {
           points,
           points_calculated,
         },
-        });
+      });
     }
 
     return {
@@ -147,9 +147,7 @@ export const actions: Actions = {
     const res = await supabase.from('guesses').delete().match({ guess_id });
 
     if (res.error) {
-      return fail(400, { error: res.error.message, failure: true, values: { guess_id }
-      }
-      );
+      return fail(400, { error: res.error.message, failure: true, values: { guess_id } });
     }
 
     return { success: 'Guess deleted succesfully' };

@@ -83,7 +83,7 @@
     </div>
   </div>
 
-  <div class="card glass max-w-xl m-4 p-4 rounded-btn">
+  <div class="card glass max-w-xl m-4 p-4 border-inherit shadow-lg rounded-xl">
     <SvelteTable
       {columns}
       rows={rules}

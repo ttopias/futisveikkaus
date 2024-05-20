@@ -10,14 +10,14 @@
   ];
 </script>
 
-<div class="m-4 p-4 items-center text-center pt-8">
-  <div class="card glass max-w-xl min-w-64 m-4 p-4 rounded-btn">
+<div class="m-4 p-4 items-center text-center pt-8 min-w-96">
+  <div class="card glass max-w-xl min-w-64 m-4 p-4 border-inherit shadow-lg rounded-xl">
     <SvelteTable
-          {columns}
-          rows={data?.standings}
-          classNameTable={'table text-left'}
-          classNameThead={'text-accent-content text-lg'}
-          classNameTbody={'text-accent-content text-md'}
-        />
+      {columns}
+      rows={data?.standings}
+      classNameTable={'table text-left'}
+      classNameThead={'text-accent-content text-lg'}
+      classNameTbody={'text-accent-content text-md'}
+    />
   </div>
 </div>

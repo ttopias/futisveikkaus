@@ -4,7 +4,10 @@
       Lähetimme sähköpostiisi linkin salasanan vaihtamiseksi.
     </h1>
     <p class="max-w-[700px] text-lg text-muted-foreground">
-      Tarkista sähköpostisi roskapostikansio, jos viesti ei näy muutamassa minuutissa. <a href="/" class="link">Palaa etusivulle</a>
+      Tarkista sähköpostisi roskapostikansio, jos viesti ei näy muutamassa minuutissa. <a
+        href="/"
+        class="link">Palaa etusivulle</a
+      >
     </p>
   </div>
 </section>

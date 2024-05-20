@@ -20,7 +20,7 @@
   <Navbar />
 
   <!-- CONTENT -->
-  <main class="flex-1 bg-base-200">
+  <main class="flex-1 py-4 text-primary-content">
     <div class="flex items-center justify-center">
       {#if $navigating}
         <div class="align-middle">
@@ -33,18 +33,18 @@
   </main>
 
   <!-- FOOTER -->
-  <footer class="p-4 bg-neutral text-neutral-content">
+  <footer class="p-4 bg-accent text-accent-content shadow-2xl">
     <div class="flex justify-between items-center">
       <a href="https://github.com/ttopias" target="_blank">
         <p>© 2024</p>
       </a>
 
       <!-- Theme Switch -->
-      <label class="btn btn-ghost btn-circle swap swap-rotate">
+      <!-- <label class="btn btn-ghost btn-circle swap swap-rotate">
         <input data-toggle-theme="light,dark" data-act-class="ACTIVECLASS" type="checkbox" />
         <SunIcon class="swap-on fill-current" />
         <MoonIcon class="swap-off fill-current" />
-      </label>
+      </label> -->
     </div>
   </footer>
 </div>

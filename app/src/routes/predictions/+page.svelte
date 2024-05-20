@@ -24,128 +24,136 @@
 
   let view = 'create';
 
-$: {
-  if ($page.url.searchParams.has('create')) {
-    view = 'create';
+  $: {
+    if ($page.url.searchParams.has('create')) {
+      view = 'create';
+    }
+    if ($page.url.searchParams.has('edit')) {
+      view = 'edit';
+    }
   }
-  if ($page.url.searchParams.has('edit')) {
-    view = 'edit';
-  }
-}
 
   let loading = false;
 </script>
 
 <div in:fade class="pt-4">
   {#if view == 'create'}
-    <div class="mx-4 form-control w-52 float-right">
+    <div class="mx-4 form-control w-52 py-4">
       <div class="btn btn-primary">
         <a href="?edit ">MUOKKAA ARVAUKSIA</a>
       </div>
     </div>
 
     <!-- CREATE PREDICTIONS -->
-  {#if !predictableMatches || predictableMatches.length === 0}
-    <div>Ei enää veikattavia otteluita.</div>
-  {:else}
-    <div class="card h-full relative carousel carousel-center m-4 p-4 glass rounded-box">
-      {#each data?.predictableMatches as match, index}
-        <form
-          class={`card-content carousel-item ${index === currentIndex ? 'block' : 'hidden'}`}
-          method="POST"
-          action="?/create"
-          use:enhance={() => {
-            loading = true;
-            return async ({ result, update }) => {
-              update();
-              console.log(result);
-              loading = false;
-            };
-          }}
+    {#if !predictableMatches || predictableMatches.length === 0}
+      <div>Ei enää veikattavia otteluita.</div>
+    {:else}
+      <div
+        class="card h-full relative carousel carousel-center m-4 p-4 glass border-inherit shadow-lg rounded-xl"
+      >
+        {#each data?.predictableMatches as match, index}
+          <form
+            class={`card-content carousel-item ${index === currentIndex ? 'block' : 'hidden'}`}
+            method="POST"
+            action="?/create"
+            use:enhance={() => {
+              loading = true;
+              return async ({ result, update }) => {
+                update();
+                console.log(result);
+                loading = false;
+              };
+            }}
+          >
+            <div class="form-control">
+              <div class="card-title text-accent-content text-2xl justify-center">
+                <Time timestamp={match?.date} format="DD.MM.YYYY" />
+                {' '}{match?.time}
+              </div>
+              <input type="hidden" name="match_id" value={match.match_id} />
+
+              <div class="flex justify-between mt-4 px-4">
+                <div class="text-center font-bold w-1/2 py-4">
+                  <div class="flag-container">
+                    <img
+                      class="flag rounded-btn"
+                      src={`../flags/${match.home.country_code}.svg`}
+                      alt="{match.home.name} flag"
+                    />
+                  </div>
+                  <label class="block text-sm mt-5">
+                    {match.home.name}
+                    <input
+                      class="input input-bordered w-full"
+                      id="home_goals"
+                      name="home_goals"
+                      placeholder="Kotijoukkueen maalit"
+                      pattern="[0-9]*"
+                      type="number"
+                      min="0"
+                      value={form?.home_goals ?? 0}
+                    />
+                  </label>
+                </div>
+
+                <div class="text-center font-bold w-1/2 py-4">
+                  <div class="flag-container">
+                    <img
+                      class="flag rounded-btn"
+                      src={`../flags/${match.away.country_code}.svg`}
+                      alt="{match.away.name} flag"
+                    />
+                  </div>
+                  <label class="block text-sm mt-5">
+                    {match.away.name}
+                    <input
+                      class="input input-bordered w-full"
+                      id="away_goals"
+                      name="away_goals"
+                      placeholder="Vierasjoukkueen maalit"
+                      pattern="[0-9]*"
+                      type="number"
+                      min="0"
+                      value={form?.away_goals ?? 0}
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div class="text-center mt-4 px-4">
+                <button class="btn btn-primary w-full" class:loading type="submit">TALLENNA</button>
+              </div>
+            </div>
+            {#if form?.error}
+              <div class="text-center mt-4 px-4">
+                <div class="btn btn-error w-full">{form.error.message}</div>
+              </div>
+            {/if}
+          </form>
+        {/each}
+        <div
+          class="absolute flex justify-between transform -translate-y-4/5 left-5 right-5 top-4/5"
         >
-          <div class="form-control">
-            <div class="card-title text-accent-content text-2xl justify-center">
-              <Time timestamp={match?.date} format="DD.MM.YYYY" />
-              {' '}{match?.time}
-            </div>
-            <input type="hidden" name="match_id" value={match.match_id} />
-
-            <div class="flex justify-between mt-4 px-4">
-              <div class="text-center font-bold w-1/2">
-                <div class="flag-container">
-                  <img
-                    class="flag rounded-btn"
-                    src={`../flags/${match.home.country_code}.svg`}
-                    alt="{match.home.name} flag"
-                  />
-                </div>
-                <label class="block text-sm mt-2">
-                  {match.home.name}
-                  <input
-                    class="input input-bordered w-full"
-                    id="home_goals"
-                    name="home_goals"
-                    placeholder="Kotijoukkueen maalit"
-                    type="number"
-                    min="0"
-                    value={form?.home_goals ?? 0}
-                  />
-                </label>
-              </div>
-
-              <div class="text-center font-bold w-1/2">
-                <div class="flag-container">
-                  <img
-                    class="flag rounded-btn"
-                    src={`../flags/${match.away.country_code}.svg`}
-                    alt="{match.away.name} flag"
-                  />
-                </div>
-                <label class="block text-sm mt-2">
-                  {match.away.name}
-                  <input
-                    class="input input-bordered w-full"
-                    id="away_goals"
-                    name="away_goals"
-                    placeholder="Vierasjoukkueen maalit"
-                    type="number"
-                    min="0"
-                    value={form?.away_goals ?? 0}
-                  />
-                </label>
-              </div>
-            </div>
-
-            <div class="text-center mt-4 px-4">
-              <button class="btn btn-primary w-full" class:loading type="submit">TALLENNA</button>
-            </div>
-          </div>
-          {#if form?.error}
-            <div class="text-center mt-4 px-4">
-              <div class="btn btn-error w-full">{form.error.message}</div>
-            </div>
-          {/if}
-        </form>
-      {/each}
-      <div class="absolute flex justify-between transform -translate-y-4/5 left-5 right-5 top-4/5">
-        <button class="btn btn-circle" on:click={() => navigate(-1)}>❮</button>
-        <button class="btn btn-circle" on:click={() => navigate(1)}>❯</button>
+          <button class="btn btn-circle" on:click={() => navigate(-1)}>❮</button>
+          <button class="btn btn-circle" on:click={() => navigate(1)}>❯</button>
+        </div>
       </div>
-    </div>
-  {/if}
-  
-          <!-- UPDATE PREDICTIONS -->
+    {/if}
+
+    <!-- UPDATE PREDICTIONS -->
   {:else if view == 'edit'}
-    <div class="mx-4 form-control w-52 float-right">
-      <div class="float-end btn btn-primary">
-        <a href="?create" data-sveltekit-reload>TAKAISIN</a>
+    <div class="mx-4 form-control w-52 py-4">
+      <div class="btn btn-primary">
+        <a href="?create ">TAKAISIN</a>
       </div>
     </div>
 
     {#if !predictions || predictions.length === 0}
       <div>Et ole vielä luonut veikkauksia</div>
     {:else}
-      <ul class="card glass h-full relative carousel carousel-center m-4 p-4 rounded-box">
+      <ul
+        class="card glass h-full relative carousel carousel-center m-4 p-4 border-inherit shadow-lg rounded-xl"
+      >
         {#each predictions as prediction}
           <form
             class="card-content my-4"
@@ -177,13 +185,14 @@ $: {
                       alt="{prediction.match.home.name} flag"
                     />
                   </div>
-                  <label class="block text-sm mt-2">
+                  <label class="block text-sm mt-5">
                     {prediction.match.home.name}
                     <input
                       class="input input-bordered w-full"
                       id="home_goals"
                       name="home_goals"
                       placeholder="Kotijoukkueen maalit"
+                      pattern="[0-9]*"
                       type="number"
                       min="0"
                       value={form?.home_goals ?? 0}
@@ -199,13 +208,14 @@ $: {
                       alt="{prediction.match.away.name} flag"
                     />
                   </div>
-                  <label class="block text-sm mt-2">
+                  <label class="block text-sm mt-5">
                     {prediction.match.away.name}
                     <input
                       class="input input-bordered w-full"
                       id="away_goals"
                       name="away_goals"
                       placeholder="Vierasjoukkueen maalit"
+                      pattern="[0-9]*"
                       type="number"
                       min="0"
                       value={form?.away_goals ?? 0}
@@ -228,7 +238,7 @@ $: {
                       predictions = predictions.filter((p) => p.guess_id !== prediction.guess_id);
                     };
                   }}
-                  >
+                >
                   <button class="w-full btn btn-error" type="submit">POISTA</button>
                   <input type="hidden" name="guess_id" value={prediction.guess_id} />
                 </form>
@@ -241,6 +251,7 @@ $: {
               </div>
             {/if}
           </form>
+          <div class="divider divider-neutral" />
         {/each}
       </ul>
     {/if}

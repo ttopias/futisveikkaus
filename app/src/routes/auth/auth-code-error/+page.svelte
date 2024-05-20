@@ -15,7 +15,9 @@
       <h1 class="text-3xl font-extrabold leading-tight tracking-tighter md:text-4xl">
         Jotain meni pieleen.
       </h1>
-      <p class="max-w-[700px] text-lg text-muted-foreground">Selvitämme asiaa. Ole hyvä ja yritä myöhemmin uudelleen.</p>
+      <p class="max-w-[700px] text-lg text-muted-foreground">
+        Selvitämme asiaa. Ole hyvä ja yritä myöhemmin uudelleen.
+      </p>
       <p class="max-w-[700px] text-lg text-muted-foreground">
         <a href="/" class="underline">Takaisin</a>
       </p>

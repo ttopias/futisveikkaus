@@ -26,7 +26,7 @@ export const actions: Actions = {
       if (error instanceof AuthApiError && error.status === 400) {
         return fail(400, {
           error: error.message,
-            email,
+          email,
         });
       }
       return fail(500, {

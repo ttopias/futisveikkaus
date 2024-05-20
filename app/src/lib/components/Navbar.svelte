@@ -10,7 +10,7 @@
   let isUserMenuOpen = false;
 </script>
 
-<nav class="bg-neutral text-neutral-content w-full p-2">
+<nav class="bg-accent text-accent-content w-full p-2 shadow-2xl">
   <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
     <div class="flex justify-between h-12">
       <div class="w-full flex">
@@ -57,7 +57,8 @@
             <a
               href="/standings"
               class="link no-underline px-3 py-2 rounded-md text-sm font-medium"
-              aria-current={$page.url.pathname === '/standings' ? 'page' : undefined}>Pistetilanne</a
+              aria-current={$page.url.pathname === '/standings' ? 'page' : undefined}
+              >Pistetilanne</a
             >
           {/if}
         </div>
@@ -65,17 +66,18 @@
           <div class="hidden sm:flex flex-grow items-center justify-center space-x-4">
             <a
               href="/admin/matches"
-              class="link no-underline px-3 py-2 rounded-md text-sm font-medium text-secondary"
-              aria-current={$page.url.pathname === '/admin/matches' ? 'page' : undefined}>Otteluohjelma</a
+              class="link no-underline px-3 py-2 rounded-md text-sm font-medium text-accent"
+              aria-current={$page.url.pathname === '/admin/matches' ? 'page' : undefined}
+              >Otteluohjelma</a
             >
             <a
               href="/admin/teams"
-              class="link no-underline px-3 py-2 rounded-md text-sm font-medium text-secondary"
+              class="link no-underline px-3 py-2 rounded-md text-sm font-medium text-accent"
               aria-current={$page.url.pathname === '/admin/teams' ? 'page' : undefined}>Joukkueet</a
             >
             <a
               href="/admin/users"
-              class="link no-underline px-3 py-2 rounded-md text-sm font-medium text-secondary"
+              class="link no-underline px-3 py-2 rounded-md text-sm font-medium text-accent"
               aria-current={$page.url.pathname === '/admin/users' ? 'page' : undefined}>Käyttäjät</a
             >
           </div>
@@ -95,11 +97,11 @@
       </div>
 
       <!-- Mobile menu button -->
-      <div class="flex items-center">
+      <div class="flex items-center rounded-btn">
         <div class="sm:hidden">
           <button
             on:click={() => (isMenuOpen = !isMenuOpen)}
-            class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover: hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"
+            class="inline-flex items-center justify-center p-2 rounded-md"
           >
             <span class="sr-only">Open main menu</span>
             <!-- Icon for menu button -->
@@ -143,7 +145,11 @@
   </div>
 
   <!-- Mobile menu -->
-  <div class="bg-neutral sm:hidden mt-2 rounded-btn" id="mobile-menu" class:hidden={!isMenuOpen}>
+  <div
+    class="bg-accent text-accent-content sm:hidden mt-2 rounded-btn"
+    id="mobile-menu"
+    class:hidden={!isMenuOpen}
+  >
     <div class="px-2 pt-2 pb-3 space-y-1 mx-2">
       <a
         on:click={() => (isMenuOpen = !isMenuOpen)}
@@ -197,19 +203,20 @@
         <a
           on:click={() => (isMenuOpen = !isMenuOpen)}
           href="/admin/matches"
-          class="w-full text-secondary block h-6 px-3 py-2 rounded-md text-base font-medium"
-          aria-current={$page.url.pathname === '/admin/matches' ? 'page' : undefined}>Otteluohjelma</a
+          class="w-full text-accent-content block h-6 px-3 py-2 rounded-md text-base font-medium"
+          aria-current={$page.url.pathname === '/admin/matches' ? 'page' : undefined}
+          >Otteluohjelma</a
         >
         <a
           on:click={() => (isMenuOpen = !isMenuOpen)}
           href="/admin/teams"
-          class="w-full text-secondary block h-6 px-3 py-2 rounded-md text-base font-medium"
+          class="w-full text-accent-content block h-6 px-3 py-2 rounded-md text-base font-medium"
           aria-current={$page.url.pathname === '/admin/teams' ? 'page' : undefined}>Joukkueet</a
         >
         <a
           on:click={() => (isMenuOpen = !isMenuOpen)}
           href="/admin/users"
-          class="w-full text-secondary block h-6 px-3 py-2 rounded-md text-base font-medium"
+          class="w-full text-accent-content block h-6 px-3 py-2 rounded-md text-base font-medium"
           aria-current={$page.url.pathname === '/admin/users' ? 'page' : undefined}>Käyttäjät</a
         >
       {/if}

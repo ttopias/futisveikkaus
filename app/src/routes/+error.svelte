@@ -13,7 +13,7 @@
       </p>
     {:else if $page.status === 401}
       <h1 class="text-3xl font-extrabold leading-tight tracking-tighter md:text-4xl">
-        Et ole kirjautunut sisään. 
+        Et ole kirjautunut sisään.
       </h1>
       Kirjaudu sisään tai rekisteröidy nähdäksesi tämän sivun.
       <br />
@@ -39,7 +39,9 @@
       <h1 class="text-3xl font-extrabold leading-tight tracking-tighter md:text-4xl">
         Odottamaton virhe
       </h1>
-      <p class="max-w-[700px] text-lg text-muted-foreground">Jotain meni pieleen. Ota yhteys sivuston haltijaan.</p>
+      <p class="max-w-[700px] text-lg text-muted-foreground">
+        Jotain meni pieleen. Ota yhteys sivuston haltijaan.
+      </p>
       <p class="max-w-[700px] text-lg text-muted-foreground">
         <a href="/" class="underline">Mene takaisin</a>
       </p>

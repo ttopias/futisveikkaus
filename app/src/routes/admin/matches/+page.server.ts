@@ -80,10 +80,24 @@ export const actions: Actions = {
     });
 
     if (res.error) {
-      return fail(400, { predictable_until, date, time, home_id, away_id, error: res.error.message });
+      return fail(400, {
+        predictable_until,
+        date,
+        time,
+        home_id,
+        away_id,
+        error: res.error.message,
+      });
     }
 
-    return { predictable_until, date, time, home_id, away_id, success: 'Match created succesfully' };
+    return {
+      predictable_until,
+      date,
+      time,
+      home_id,
+      away_id,
+      success: 'Match created succesfully',
+    };
   },
 
   update: async ({ request, locals: { supabase } }) => {
