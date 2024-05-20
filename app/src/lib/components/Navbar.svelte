@@ -35,29 +35,29 @@
           <a
             href="/"
             class="link no-underline px-3 py-2 rounded-md text-sm font-medium"
-            aria-current={$page.url.pathname === '/' ? 'page' : undefined}>Home</a
+            aria-current={$page.url.pathname === '/' ? 'page' : undefined}>Etusivu</a
           >
           <a
             href="/matches"
             class="link no-underline px-3 py-2 rounded-md text-sm font-medium"
-            aria-current={$page.url.pathname === '/matches' ? 'page' : undefined}>Matches</a
+            aria-current={$page.url.pathname === '/matches' ? 'page' : undefined}>Otteluohjelma</a
           >
           <a
             href="/teams"
             class="link no-underline px-3 py-2 rounded-md text-sm font-medium"
-            aria-current={$page.url.pathname === '/teams' ? 'page' : undefined}>Teams</a
+            aria-current={$page.url.pathname === '/teams' ? 'page' : undefined}>Joukkueet</a
           >
           {#if $page.data.user}
             <a
               href="/predictions"
               class="link no-underline px-3 py-2 rounded-md text-sm font-medium"
               aria-current={$page.url.pathname === '/predictions' ? 'page' : undefined}
-              >Predictions</a
+              >Veikkaukset</a
             >
             <a
               href="/standings"
               class="link no-underline px-3 py-2 rounded-md text-sm font-medium"
-              aria-current={$page.url.pathname === '/standings' ? 'page' : undefined}>Standings</a
+              aria-current={$page.url.pathname === '/standings' ? 'page' : undefined}>Pistetilanne</a
             >
           {/if}
         </div>
@@ -66,17 +66,17 @@
             <a
               href="/admin/matches"
               class="link no-underline px-3 py-2 rounded-md text-sm font-medium text-secondary"
-              aria-current={$page.url.pathname === '/admin/matches' ? 'page' : undefined}>Matches</a
+              aria-current={$page.url.pathname === '/admin/matches' ? 'page' : undefined}>Otteluohjelma</a
             >
             <a
               href="/admin/teams"
               class="link no-underline px-3 py-2 rounded-md text-sm font-medium text-secondary"
-              aria-current={$page.url.pathname === '/admin/teams' ? 'page' : undefined}>Teams</a
+              aria-current={$page.url.pathname === '/admin/teams' ? 'page' : undefined}>Joukkueet</a
             >
             <a
               href="/admin/users"
               class="link no-underline px-3 py-2 rounded-md text-sm font-medium text-secondary"
-              aria-current={$page.url.pathname === '/admin/users' ? 'page' : undefined}>Users</a
+              aria-current={$page.url.pathname === '/admin/users' ? 'page' : undefined}>Käyttäjät</a
             >
           </div>
         {/if}
@@ -89,7 +89,7 @@
               aria-current={$page.url.pathname === '/profile' ? 'page' : undefined}><UserIcon /></a
             >
           {:else}
-            <a href="/auth" class="btn btn-primary h-4 rounded-lg">Sign in</a>
+            <a href="/auth" class="btn btn-primary h-4 rounded-lg">KIRJAUDU SISÄÄN</a>
           {/if}
         </div>
       </div>
@@ -149,19 +149,19 @@
         on:click={() => (isMenuOpen = !isMenuOpen)}
         href="/"
         class="w-full block h-6 px-3 py-2 rounded-md text-base font-medium"
-        aria-current={$page.url.pathname === '/' ? 'page' : undefined}>Home</a
+        aria-current={$page.url.pathname === '/' ? 'page' : undefined}>Etusivu</a
       >
       <a
         on:click={() => (isMenuOpen = !isMenuOpen)}
         href="/matches"
         class="w-full block h-6 px-3 py-2 rounded-md text-base font-medium"
-        aria-current={$page.url.pathname === '/matches' ? 'page' : undefined}>Matches</a
+        aria-current={$page.url.pathname === '/matches' ? 'page' : undefined}>Otteluohjelma</a
       >
       <a
         on:click={() => (isMenuOpen = !isMenuOpen)}
         href="/teams"
         class="w-full block h-6 px-3 py-2 rounded-md text-base font-medium"
-        aria-current={$page.url.pathname === '/teams' ? 'page' : undefined}>Teams</a
+        aria-current={$page.url.pathname === '/teams' ? 'page' : undefined}>Joukkueet</a
       >
 
       <!-- User-specific -->
@@ -170,19 +170,19 @@
           on:click={() => (isMenuOpen = !isMenuOpen)}
           href="/predictions"
           class="w-full block h-6 px-3 py-2 rounded-md text-base font-medium"
-          aria-current={$page.url.pathname === '/predictions' ? 'page' : undefined}>Predictions</a
+          aria-current={$page.url.pathname === '/predictions' ? 'page' : undefined}>Veikkaukset</a
         >
         <a
           on:click={() => (isMenuOpen = !isMenuOpen)}
           href="/standings"
           class="w-full block h-6 px-3 py-2 rounded-md text-base font-medium"
-          aria-current={$page.url.pathname === '/standings' ? 'page' : undefined}>Standings</a
+          aria-current={$page.url.pathname === '/standings' ? 'page' : undefined}>Pistetilanne</a
         >
         <a
           on:click={() => (isMenuOpen = !isMenuOpen)}
           href="/profile"
           class="w-full block h-6 px-3 py-2 rounded-md text-base font-medium"
-          aria-current={$page.url.pathname === '/profile' ? 'page' : undefined}>Profile</a
+          aria-current={$page.url.pathname === '/profile' ? 'page' : undefined}>Profiili</a
         >
         <a
           on:click={() => (isMenuOpen = !isMenuOpen)}
@@ -198,26 +198,26 @@
           on:click={() => (isMenuOpen = !isMenuOpen)}
           href="/admin/matches"
           class="w-full text-secondary block h-6 px-3 py-2 rounded-md text-base font-medium"
-          aria-current={$page.url.pathname === '/admin/matches' ? 'page' : undefined}>Matches</a
+          aria-current={$page.url.pathname === '/admin/matches' ? 'page' : undefined}>Otteluohjelma</a
         >
         <a
           on:click={() => (isMenuOpen = !isMenuOpen)}
           href="/admin/teams"
           class="w-full text-secondary block h-6 px-3 py-2 rounded-md text-base font-medium"
-          aria-current={$page.url.pathname === '/admin/teams' ? 'page' : undefined}>Teams</a
+          aria-current={$page.url.pathname === '/admin/teams' ? 'page' : undefined}>Joukkueet</a
         >
         <a
           on:click={() => (isMenuOpen = !isMenuOpen)}
           href="/admin/users"
           class="w-full text-secondary block h-6 px-3 py-2 rounded-md text-base font-medium"
-          aria-current={$page.url.pathname === '/admin/users' ? 'page' : undefined}>Users</a
+          aria-current={$page.url.pathname === '/admin/users' ? 'page' : undefined}>Käyttäjät</a
         >
       {/if}
 
       {#if !$page.data.user}
         <div class="flex items-center space-x-4">
           <a href="/auth" on:click={() => (isMenuOpen = !isMenuOpen)}>
-            <button type="button" class="btn btn-primary m-6">SIGN IN</button></a
+            <button type="button" class="btn btn-primary my-6">KIRJAUDU SISÄÄN</button></a
           >
         </div>
       {/if}

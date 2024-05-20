@@ -1,6 +1,7 @@
 <script lang="ts">
   import { fade } from 'svelte/transition';
   import { enhance } from '$app/forms';
+  import { page } from '$app/stores';
   import type { ActionData, PageData } from './$types';
   import Time from 'svelte-time';
 
@@ -9,7 +10,6 @@
 
   let predictions = data?.predictions || [];
   let predictableMatches = data?.predictableMatches || [];
-  let viewTodo = true;
   let currentIndex = 0;
   let carouselLength = data?.predictableMatches.length;
 
@@ -22,102 +22,32 @@
     }
   }
 
+  let view = 'create';
+
+$: {
+  if ($page.url.searchParams.has('create')) {
+    view = 'create';
+  }
+  if ($page.url.searchParams.has('edit')) {
+    view = 'edit';
+  }
+}
+
   let loading = false;
 </script>
 
 <div in:fade class="pt-4">
-  <div class="mx-4 form-control w-52">
-    <select class="select select-bordered" on:change={() => (viewTodo = !viewTodo)}>
-      <option value="true">Predict results</option>
-      <option value="false">Predictions</option>
-    </select>
-  </div>
-  {#if !viewTodo}
-    <h1>Your Predictions</h1>
-    {#if !predictions || predictions.length === 0}
-      <div>No predictions yet</div>
-    {:else}
-      <ul class="card h-full relative carousel carousel-center m-4 p-4 glass rounded-box">
-        {#each predictions as prediction}
-          <form
-            class="card-content"
-            method="POST"
-            action="?/update"
-            use:enhance={() => {
-              loading = true;
-              return async ({ result, update }) => {
-                update();
-                console.log(result);
-                loading = false;
-              };
-            }}
-          >
-            <div class="form-control">
-              <input type="hidden" name="match_id" value={prediction.match.match_id} />
+  {#if view == 'create'}
+    <div class="mx-4 form-control w-52 float-right">
+      <div class="btn btn-primary">
+        <a href="?edit ">MUOKKAA ARVAUKSIA</a>
+      </div>
+    </div>
 
-              <div class="card-title text-accent-content text-2xl justify-center">
-                <Time timestamp={prediction.match?.date} format="DD.MM.YYYY" />
-                {' '}{prediction.match?.time}
-              </div>
-
-              <div class="flex justify-between mt-4 px-4">
-                <div class="text-center font-bold w-1/2">
-                  <div class="flag-container">
-                    <img
-                      class="flag rounded-btn"
-                      src={`../flags/${prediction.match.home.country_code}.svg`}
-                      alt="{prediction.match.home.name} flag"
-                    />
-                  </div>
-                  <label class="block text-sm mt-2">
-                    {prediction.match.home.name}
-                    <input
-                      class="input input-bordered w-full"
-                      id="home_goals"
-                      name="home_goals"
-                      placeholder="Home goals"
-                      type="number"
-                      value={form?.home_goals ?? 0}
-                    />
-                  </label>
-                </div>
-
-                <div class="text-center font-bold w-1/2">
-                  <div class="flag-container">
-                    <img
-                      class="flag rounded-btn"
-                      src={`../flags/${prediction.match.away.country_code}.svg`}
-                      alt="{prediction.match.away.name} flag"
-                    />
-                  </div>
-                  <label class="block text-sm mt-2">
-                    {prediction.match.away.name}
-                    <input
-                      class="input input-bordered w-full"
-                      id="away_goals"
-                      name="away_goals"
-                      placeholder="Away goals"
-                      type="number"
-                      value={form?.away_goals ?? 0}
-                    />
-                  </label>
-                </div>
-              </div>
-
-              <div class="text-center mt-4 px-4">
-                <button class="btn btn-primary w-full" class:loading type="submit">SAVE</button>
-              </div>
-            </div>
-            {#if form?.error}
-              <div class="text-center mt-4 px-4">
-                <div class="btn btn-error w-full">{form.error.message}</div>
-              </div>
-            {/if}
-          </form>
-        {/each}
-      </ul>
-    {/if}
-  {:else if predictableMatches && predictableMatches.length > 0}
+    <!-- CREATE PREDICTIONS -->
+  {#if !predictableMatches || predictableMatches.length === 0}
+    <div>Ei enää veikattavia otteluita.</div>
+  {:else}
     <div class="card h-full relative carousel carousel-center m-4 p-4 glass rounded-box">
       {#each data?.predictableMatches as match, index}
         <form
@@ -155,8 +85,9 @@
                     class="input input-bordered w-full"
                     id="home_goals"
                     name="home_goals"
-                    placeholder="Home goals"
+                    placeholder="Kotijoukkueen maalit"
                     type="number"
+                    min="0"
                     value={form?.home_goals ?? 0}
                   />
                 </label>
@@ -176,8 +107,9 @@
                     class="input input-bordered w-full"
                     id="away_goals"
                     name="away_goals"
-                    placeholder="Away goals"
+                    placeholder="Vierasjoukkueen maalit"
                     type="number"
+                    min="0"
                     value={form?.away_goals ?? 0}
                   />
                 </label>
@@ -185,7 +117,7 @@
             </div>
 
             <div class="text-center mt-4 px-4">
-              <button class="btn btn-primary w-full" class:loading type="submit">SAVE</button>
+              <button class="btn btn-primary w-full" class:loading type="submit">TALLENNA</button>
             </div>
           </div>
           {#if form?.error}
@@ -200,6 +132,118 @@
         <button class="btn btn-circle" on:click={() => navigate(1)}>❯</button>
       </div>
     </div>
+  {/if}
+  
+          <!-- UPDATE PREDICTIONS -->
+  {:else if view == 'edit'}
+    <div class="mx-4 form-control w-52 float-right">
+      <div class="float-end btn btn-primary">
+        <a href="?create" data-sveltekit-reload>TAKAISIN</a>
+      </div>
+    </div>
+
+    {#if !predictions || predictions.length === 0}
+      <div>Et ole vielä luonut veikkauksia</div>
+    {:else}
+      <ul class="card glass h-full relative carousel carousel-center m-4 p-4 rounded-box">
+        {#each predictions as prediction}
+          <form
+            class="card-content my-4"
+            method="POST"
+            action="?/update"
+            use:enhance={() => {
+              loading = true;
+              return async ({ result, update }) => {
+                update();
+                console.log(result);
+                loading = false;
+              };
+            }}
+          >
+            <div class="form-control">
+              <input type="hidden" name="match_id" value={prediction.match.match_id} />
+
+              <div class="card-title text-accent-content text-2xl justify-center">
+                <Time timestamp={prediction.match?.date} format="DD.MM.YYYY" />
+                {' '}{prediction.match?.time}
+              </div>
+
+              <div class="flex justify-between mt-4 px-4">
+                <div class="text-center font-bold w-1/2">
+                  <div class="flag-container">
+                    <img
+                      class="flag rounded-btn"
+                      src={`../flags/${prediction.match.home.country_code}.svg`}
+                      alt="{prediction.match.home.name} flag"
+                    />
+                  </div>
+                  <label class="block text-sm mt-2">
+                    {prediction.match.home.name}
+                    <input
+                      class="input input-bordered w-full"
+                      id="home_goals"
+                      name="home_goals"
+                      placeholder="Kotijoukkueen maalit"
+                      type="number"
+                      min="0"
+                      value={form?.home_goals ?? 0}
+                    />
+                  </label>
+                </div>
+
+                <div class="text-center font-bold w-1/2">
+                  <div class="flag-container">
+                    <img
+                      class="flag rounded-btn"
+                      src={`../flags/${prediction.match.away.country_code}.svg`}
+                      alt="{prediction.match.away.name} flag"
+                    />
+                  </div>
+                  <label class="block text-sm mt-2">
+                    {prediction.match.away.name}
+                    <input
+                      class="input input-bordered w-full"
+                      id="away_goals"
+                      name="away_goals"
+                      placeholder="Vierasjoukkueen maalit"
+                      type="number"
+                      min="0"
+                      value={form?.away_goals ?? 0}
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div class="text-center mt-4 px-4 inline-flex gap-4 justify-between">
+                <form
+                  class="w-1/3"
+                  method="POST"
+                  action="?/delete"
+                  use:enhance={() => {
+                    loading = true;
+                    return async ({ result, update }) => {
+                      update();
+                      console.log(result);
+                      loading = false;
+                      predictions = predictions.filter((p) => p.guess_id !== prediction.guess_id);
+                    };
+                  }}
+                  >
+                  <button class="w-full btn btn-error" type="submit">POISTA</button>
+                  <input type="hidden" name="guess_id" value={prediction.guess_id} />
+                </form>
+                <button class="w-1/3 btn btn-primary" class:loading type="submit">TALLENNA</button>
+              </div>
+            </div>
+            {#if form?.error}
+              <div class="text-center mt-4 px-4">
+                <div class="btn btn-error w-full">{form.error.message}</div>
+              </div>
+            {/if}
+          </form>
+        {/each}
+      </ul>
+    {/if}
   {/if}
 </div>
 

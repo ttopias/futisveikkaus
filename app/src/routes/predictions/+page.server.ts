@@ -193,7 +193,7 @@ export const actions: Actions = {
 
     const form_data = await request.formData();
     const guess_id = form_data.get('guess_id');
-
+    console.log('guess_id :>> ', guess_id);
     if (!guess_id) {
       return fail(400, {
         message: 'Missing required fields',
@@ -206,7 +206,7 @@ export const actions: Actions = {
       .delete()
       .eq('guess_id', guess_id)
       .eq('user_id', user.id);
-
+    console.log('error :>> ', error);
     if (error) {
       console.error('Error deleting prediction:', error);
       return fail(422, {

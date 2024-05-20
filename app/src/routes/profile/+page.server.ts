@@ -12,7 +12,7 @@ export const load: PageServerLoad = async ({ locals: { safeGetSession } }) => {
 };
 
 export const actions: Actions = {
-  save: async ({ request, locals: { supabase } }) => {
+  update: async ({ request, locals: { supabase } }) => {
     const form_data = await request.formData();
     const email = form_data.get('email')?.toString();
     const first_name = form_data.get('first_name')?.toString();

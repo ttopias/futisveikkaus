@@ -6,40 +6,42 @@
   <div class="flex max-w-[980px] flex-col items-start gap-2">
     {#if $page.status === 404}
       <h1 class="text-3xl font-extrabold leading-tight tracking-tighter md:text-4xl">
-        Page Not Found.
+        Sivua ei löytynyt.
       </h1>
       <p class="max-w-[700px] text-lg text-muted-foreground">
-        <a href="/" class="underline">Go back</a>
+        <a href="/" class="underline">Mene takaisin</a>
       </p>
     {:else if $page.status === 401}
       <h1 class="text-3xl font-extrabold leading-tight tracking-tighter md:text-4xl">
-        Unauthorized. 
+        Et ole kirjautunut sisään. 
       </h1>
-      Please login to access this page.
+      Kirjaudu sisään tai rekisteröidy nähdäksesi tämän sivun.
       <br />
       <p class="max-w-[700px] text-lg text-muted-foreground">
         <a href="/auth" class="underline">Login or register</a>
       </p>
       <br />
       <p class="max-w-[700px] text-lg text-muted-foreground">
-        <a href="/" class="underline">Go back</a>
+        <a href="/" class="underline">Mene takaisin</a>
       </p>
     {:else if $page.status === 403}
       <h1 class="text-3xl font-extrabold leading-tight tracking-tighter md:text-4xl">
-        Forbidden.
+        Virheellinen käyttöoikeus
       </h1>
-      You don't have permission to access this page.
+      <p class="max-w-[700px] text-lg text-muted-foreground">
+        Sinulla ei ole oikeutta nähdä tätä sivua.
+      </p>
       <br />
       <p class="max-w-[700px] text-lg text-muted-foreground">
-        <a href="/" class="underline">Go back</a>
+        <a href="/" class="underline">Mene takaisin</a>
       </p>
     {:else}
       <h1 class="text-3xl font-extrabold leading-tight tracking-tighter md:text-4xl">
-        Unexpected Error
+        Odottamaton virhe
       </h1>
-      <p class="max-w-[700px] text-lg text-muted-foreground">We're investigating the issue.</p>
+      <p class="max-w-[700px] text-lg text-muted-foreground">Jotain meni pieleen. Ota yhteys sivuston haltijaan.</p>
       <p class="max-w-[700px] text-lg text-muted-foreground">
-        <a href="/" class="underline">Go back</a>
+        <a href="/" class="underline">Mene takaisin</a>
       </p>
     {/if}
   </div>

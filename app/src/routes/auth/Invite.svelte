@@ -9,7 +9,7 @@
 </script>
 
 <div class="card-body">
-  <h1 class="text-center text-4xl mb-8">Send invite link</h1>
+  <h1 class="text-center text-4xl mb-8">Kutsu käyttäjä</h1>
 
   {#if form?.error}
     <div in:fade class="alert alert-error shadow-lg">
@@ -53,7 +53,7 @@
           name="email"
           class="grow"
           type="email"
-          placeholder="email@example.com"
+          placeholder="email@esimerkki.com"
           value={form?.email ?? ''}
           required
         />
@@ -61,7 +61,7 @@
     </div>
 
     <div class="form-control mt-6">
-      <button class="btn btn-primary" class:loading>Invite</button>
+      <button class="btn btn-primary" class:loading>LÄHETÄ</button>
     </div>
   </form>
 </div>

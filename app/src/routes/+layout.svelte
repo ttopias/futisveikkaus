@@ -36,7 +36,7 @@
   <footer class="p-4 bg-neutral text-neutral-content">
     <div class="flex justify-between items-center">
       <a href="https://github.com/ttopias" target="_blank">
-        <p>© 2023</p>
+        <p>© 2024</p>
       </a>
 
       <!-- Theme Switch -->

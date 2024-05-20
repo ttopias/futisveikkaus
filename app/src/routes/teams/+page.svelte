@@ -7,14 +7,12 @@
 </script>
 
 <div class="grid grid-cols-1 md:grid-cols-2 w-full m-4 gap-2 justify-center">
-  {#if !data.teams}
-    <p>Loading...</p>
-  {:else if Object.keys(data.teams).length === 0}
-    <p>No teams found</p>
+  {#if !data.teams || Object.keys(data.teams).length === 0}
+    <p>Jotain meni pieleen..</p>
   {:else}
     {#each Object.keys(data?.teams).sort((a, b) => a.localeCompare(b)) as group}
       <div class="m-4 pt-4 card glass card-bordered card-compact">
-        <div class="card-title justify-center">Group {group}</div>
+        <div class="card-title justify-center text-accent-content">Lohko {group}</div>
         <div class="card-body">
           <SvelteTable
             columns={teamTableCols}

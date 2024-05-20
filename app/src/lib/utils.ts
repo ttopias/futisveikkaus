@@ -40,7 +40,7 @@ export const rules = [
 export const teamTableCols = [
   {
     key: 'country',
-    title: 'COUNTRY',
+    title: 'MAA',
     renderComponent: TeamInTable,
     sortable: false,
   },
@@ -52,31 +52,31 @@ export const teamTableCols = [
   },
   {
     key: 'win',
-    title: 'W',
+    title: 'V',
     value: (v: any) => v.win,
     sortable: true,
   },
   {
     key: 'draw',
-    title: 'D',
+    title: 'T',
     value: (v: any) => v.draw,
     sortable: true,
   },
   {
     key: 'loss',
-    title: 'L',
+    title: 'H',
     value: (v: any) => v.loss,
     sortable: true,
   },
   {
     key: 'gf',
-    title: 'GF',
+    title: 'TM',
     value: (v: any) => v.gf,
     sortable: true,
   },
   {
     key: 'gaa',
-    title: 'GA',
+    title: 'PM',
     value: (v: any) => v.gaa,
     sortable: true,
   },
@@ -85,7 +85,7 @@ export const teamTableCols = [
 export const matchTableCols = [
   {
     key: 'date',
-    title: 'DATE',
+    title: 'PVM',
     renderComponent: {
       component: TimeInTable,
       props: { field: 'date', format: 'DD-MM-YYYY' },
@@ -94,13 +94,13 @@ export const matchTableCols = [
   },
   {
     key: 'time',
-    title: 'TIME',
+    title: 'KLO',
     value: (v: any) => v.time,
     sortable: false,
   },
   {
     key: 'home',
-    title: 'HOME',
+    title: 'KOTI',
     renderComponent: {
       component: TeamInTable,
       props: { field: 'home', flagLeft: true },
@@ -121,7 +121,7 @@ export const matchTableCols = [
   },
   {
     key: 'away',
-    title: 'AWAY',
+    title: 'VIERAS',
     renderComponent: {
       component: TeamInTable,
       props: { field: 'away', flagLeft: false },

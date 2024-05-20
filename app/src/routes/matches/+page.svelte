@@ -7,13 +7,11 @@
 </script>
 
 <div>
-  {#if !data.matches}
-    <p>Loading...</p>
-  {:else if data.matches.length === 0}
-    <p>No matches found</p>
+  {#if !data.matches || data.matches.length === 0}
+    <p>Jotain meni pieleen...</p>
   {:else}
     <div class="m-4 py-4 card glass card-bordered card-compact shadow-xl">
-      <div class="card-title justify-center">Matches</div>
+      <div class="card-title justify-center text-accent-content">Otteluohjelma</div>
       <div class="card-body">
         <SvelteTable
           columns={matchTableCols}

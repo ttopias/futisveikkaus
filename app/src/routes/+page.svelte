@@ -39,13 +39,13 @@
   const columns = [
     {
       key: 'rule',
-      title: 'Rule',
+      title: 'Sääntö',
       value: (r: Rule) => r.rule,
       sortable: false,
     },
     {
       key: 'points',
-      title: 'Points',
+      title: 'Pisteitä',
       value: (r: Rule) => r.points,
       sortable: true,
     },
@@ -54,31 +54,31 @@
 
 <div class="m-4 p-4 items-center text-center pt-8">
   <div class="mb-8 p-4">
-    <div class="text-4xl font-bold">KICK OFF IN</div>
+    <div class="text-4xl font-bold">KISOJEN ALKUUN</div>
     <div class="justify-center grid grid-flow-col gap-5 text-center auto-cols-max pt-4">
       <div class="flex flex-col">
         <span class="countdown font-mono text-5xl">
           <span style={`--value:${days};`}></span>
         </span>
-        days
+        päivää
       </div>
       <div class="flex flex-col">
         <span class="countdown font-mono text-5xl">
           <span style={`--value:${hours};`}></span>
         </span>
-        hours
+        tuntia
       </div>
       <div class="flex flex-col">
         <span class="countdown font-mono text-5xl">
           <span style={`--value:${minutes};`}></span>
         </span>
-        minutes
+        minuuttia
       </div>
       <div class="flex flex-col">
         <span class="countdown font-mono text-5xl">
           <span style={`--value:${seconds};`}></span>
         </span>
-        seconds
+        sekuntia
       </div>
     </div>
   </div>

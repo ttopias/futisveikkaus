@@ -7,7 +7,7 @@
 </script>
 
 <div class="card-body">
-  <h1 class="text-center text-4xl mb-6">Forgot password?</h1>
+  <h1 class="text-center text-4xl mb-6">Unohtuiko salasana?</h1>
 
   <form
     method="POST"
@@ -42,7 +42,7 @@
           name="email"
           class="grow"
           type="email"
-          placeholder="email@example.com"
+          placeholder="email@esimerkki.com"
           value={form?.email ?? ''}
           required
         />
@@ -50,7 +50,7 @@
     </div>
 
     <div class="form-control mt-4">
-      <button class="btn btn-primary" class:loading>SEND RESET LINK</button>
+      <button class="btn btn-primary" class:loading>NOLLAA SALASANA</button>
     </div>
   </form>
 </div>

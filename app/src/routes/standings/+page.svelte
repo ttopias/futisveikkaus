@@ -5,8 +5,8 @@
   export let data: PageData;
 
   const columns = [
-    { key: 'first_name', title: 'Name', value: (v: any) => v.first_name },
-    { key: 'total_points', title: 'Points', value: (v: any) => v.total_points, sortable: true },
+    { key: 'first_name', title: 'NIMI', value: (v: any) => v.first_name },
+    { key: 'total_points', title: 'PISTEET', value: (v: any) => v.total_points, sortable: true },
   ];
 </script>
 

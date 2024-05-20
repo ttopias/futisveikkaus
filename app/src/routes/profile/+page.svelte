@@ -14,19 +14,20 @@
     id="edit"
     class="w-full max-w-sm"
     method="POST"
-    action="?/save"
+    action="?/update"
     use:enhance={() => {
       loading = true;
-      return async ({ result, update }) => {
+      return async ({ update }) => {
         update();
         loading = false;
       };
     }}
   >
-    <h1 class="text-2xl font-semibold text-center">
-      Points: {data?.user?.user_metadata?.points ?? '0'}
+    <h1 class="text-2xl font-semibold text-center my-4 min-w-96">
+      Pisteet: {data?.user?.user_metadata?.points ?? '0'}
     </h1>
     <div class="form-control">
+      <div class="text-sm text-accent-content mt-2">Sähköposti</div>
       <label class="input input-bordered flex items-center gap-2">
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -45,13 +46,13 @@
           name="email"
           type="text"
           value={form?.email ?? data?.user?.user_metadata?.email ?? ''}
-          placeholder="Email"
+          placeholder="Sähköpostiosoite"
           class="grow"
           disabled
         />
       </label>
 
-      <div class="text-sm text-accent-content mt-2">You can change your username below</div>
+      <div class="text-sm text-accent-content mt-2">Nimi</div>
       <label class="input input-bordered flex items-center gap-2">
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -67,22 +68,22 @@
           id="first_name"
           name="first_name"
           value={form?.first_name ?? data?.user?.user_metadata?.first_name ?? ''}
-          placeholder="First name"
+          placeholder="Etunimi"
           class="grow"
         />
       </label>
     </div>
 
-    <div class="form-control mt-4 mb-4">
+    <div class="form-control mt-8 mb-4">
       <button class="btn btn-primary justify-between" class:loading type="submit"
-        >Save <SaveIcon class="ml-4" /></button
+        >TALLENNA <SaveIcon class="ml-4" /></button
       >
     </div>
   </form>
 
   <form action="/auth?/signout" method="POST" class="w-full max-w-sm">
     <button type="submit" class="btn btn-error w-full max-w-sm justify-between">
-      Sign Out<LogOutIcon class="ml-4" />
+      KIRJAUDU ULOS<LogOutIcon class="ml-4" />
     </button>
   </form>
 </div>

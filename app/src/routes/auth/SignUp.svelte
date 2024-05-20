@@ -23,7 +23,7 @@
 </script>
 
 <div class="card-body mb-10">
-  <h1 class="text-center text-4xl mb-6">Sign Up</h1>
+  <h1 class="text-center text-4xl mb-6">Rekisteröidy</h1>
 
   <form
     method="POST"
@@ -56,7 +56,7 @@
           name="email"
           class="grow"
           type="email"
-          placeholder="email@example.com"
+          placeholder="email@esimerkki.com"
           value={form?.email ?? ''}
           required
         />
@@ -77,7 +77,7 @@
           name="first_name"
           class="grow"
           type="text"
-          placeholder="First name"
+          placeholder="Etunimi"
           value={form?.first_name ?? ''}
           required
         />
@@ -101,7 +101,7 @@
           class="grow"
           {...{ type }}
           bind:value={password}
-          placeholder="Password"
+          placeholder="Salasana"
           required
         />
       </label>
@@ -124,7 +124,7 @@
           class="grow"
           {...{ type }}
           bind:value={password2}
-          placeholder="Confirm password"
+          placeholder="Vahvista salasana"
           required
         />
         <kbd class="kbd kbd-sm">
@@ -144,11 +144,11 @@
     </div>
 
     <div class="form-control mt-4 mb-4">
-      <button class:btn-disabled={disabled} class="btn btn-primary" class:loading>Sign Up</button>
+      <button class:btn-disabled={disabled} class="btn btn-primary" class:loading>Rekisteröidy</button>
     </div>
 
     <div class="text-sm text-primary text-center">
-      <a class="link no-underline" href="?signin">Already have an account? Sign-In</a>
+      <a class="link no-underline" href="?signin">Löytyykö tunnus? Kirjaudu sisään</a>
     </div>
   </form>
 </div>

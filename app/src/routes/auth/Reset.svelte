@@ -17,7 +17,7 @@
 </script>
 
 <div class="card-body">
-  <h1 class="text-center text-4xl mb-6">Reset password</h1>
+  <h1 class="text-center text-4xl mb-6">Nollaa salasana</h1>
 
   <form
     method="POST"
@@ -52,7 +52,7 @@
           class="grow"
           type="password"
           bind:value={password}
-          placeholder="Password"
+          placeholder="Salasana"
           required
         />
       </label>
@@ -75,13 +75,15 @@
           class="grow"
           type="password"
           bind:value={password2}
-          placeholder="Confirm password"
+          placeholder="Vahvista salasana"
           required
         />
       </label>
 
       <div class="form-control mt-6">
-        <button class="btn btn-primary" class:loading>Reset Password</button>
+        <button class="btn btn-primary" class:loading>
+          NOLLAA SALASANA
+        </button>
       </div>
     </div>
   </form>
