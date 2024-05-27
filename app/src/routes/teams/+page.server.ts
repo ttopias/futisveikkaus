@@ -19,6 +19,6 @@ export const load: PageServerLoad = async ({ locals: { supabase } }) => {
     acc[team.group].push(team);
     return acc;
   }, {});
-  console.log('groupedTeams :>> ', groupedTeams);
+
   return { teams: groupedTeams };
 };

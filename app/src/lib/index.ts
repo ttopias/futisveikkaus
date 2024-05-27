@@ -31,6 +31,7 @@ export type Match = {
 
 export type Prediction = {
   guess_id: number;
+  user_id?: string;
   match: Match;
   home_goals: number;
   away_goals: number;
@@ -38,6 +39,7 @@ export type Prediction = {
   points_calculated: number;
   groupStage?: boolean;
   group?: string;
+  user?: User;
 };
 
 export type Team = {
@@ -53,8 +55,9 @@ export type Team = {
 };
 
 export type User = {
-  user_id: string;
-  total_points: number;
+  user_id?: string;
+  id?: string;
+  total_points?: number;
   first_name: string;
 };
 

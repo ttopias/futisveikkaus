@@ -10,7 +10,7 @@
   let userFilter = '';
 
   $: filteredGuesses = userFilter
-    ? guesses.filter((guess) => guess.user_id === userFilter)
+    ? guesses.filter((guess) => guess.user.id === userFilter)
     : guesses;
 
   console.log('filteredGuesses :>> ', filteredGuesses);
@@ -19,7 +19,7 @@
     {
       key: 'user',
       title: 'Käyttäjä',
-      value: (r: any) => r.user,
+      value: (r: any) => r.user.first_name,
       sortable: true,
     },
     {
@@ -76,6 +76,4 @@
     classNameThead={'text-accent-content text-lg'}
     classNameTbody={'text-accent-content text-md'}
   />
-
-  <pre>{JSON.stringify(filteredGuesses, null, 2)}</pre>
 </div>

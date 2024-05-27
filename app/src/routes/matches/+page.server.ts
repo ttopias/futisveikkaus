@@ -1,16 +1,11 @@
 import type { PageServerLoad } from './$types';
 import type { Match } from '$lib/index';
-import {
-  PUBLIC_GROUP_STAGE_ENDS,
-  PUBLIC_R16_ENDS,
-  PUBLIC_QF_ENDS,
-  PUBLIC_SF_ENDS,
-} from '$env/static/public';
+import { addGroupStageDetails, sortByDateTime } from '$lib/utils';
 
 export const load: PageServerLoad = async ({ locals: { supabase } }) => {
   let matches: Match[] = [];
 
-  const { data, error } = await supabase
+  const res = await supabase
     .from('matches')
     .select(
       `
@@ -26,62 +21,19 @@ export const load: PageServerLoad = async ({ locals: { supabase } }) => {
     )
     .order('date', { ascending: true });
 
-  if (error) {
+  if (res.error) {
     return {
       status: 500,
-      error: error.message,
+      error: res.error.message,
     };
   }
 
-  if (!data || (Array.isArray(data) && data.length === 0)) {
+  if (!res.data || (Array.isArray(res.data) && res.data.length === 0)) {
     return { matches: matches };
   }
 
-  matches = data as unknown as Match[];
+  matches = res.data as unknown as Match[];
+  matches = sortByDateTime(addGroupStageDetails(matches));
 
-  matches = matches.map((match) => {
-    if (new Date(match.date) <= new Date(PUBLIC_GROUP_STAGE_ENDS)) {
-      return {
-        ...match,
-        groupStage: true,
-        group: match.home.group,
-      };
-    } 
-    if (new Date(match.date) < new Date(PUBLIC_R16_ENDS)) {
-      return {
-        ...match,
-        groupStage: false,
-        group: 'R16',
-      };
-    } 
-    if (new Date(match.date) < new Date(PUBLIC_QF_ENDS)) {
-      return {
-        ...match,
-        groupStage: false,
-        group: 'Välierä',
-      };
-    }
-    if (new Date(match.date) < new Date(PUBLIC_SF_ENDS)) {
-      return {
-        ...match,
-        groupStage: false,
-        group: 'Semifinaali',
-      };
-    }
-    if (new Date(match.date) >= new Date(PUBLIC_SF_ENDS)) {
-      return {
-        ...match,
-        groupStage: false,
-        group: 'Finaali',
-      };
-    };
-
-    return {
-      ...match,
-      groupStage: false,
-      group: '',
-    };
-  });
-
-  return { matches: matches };
+  return { matches };
 };

@@ -2,6 +2,8 @@ import type { Actions, PageServerLoad } from './$types';
 import { error, fail } from '@sveltejs/kit';
 import { supabaseAdminClient } from '$lib/server/supabaseAdminClient';
 import type { User } from '@supabase/supabase-js';
+import { sortPredsByDateTime } from '$lib/utils';
+import type { Prediction } from '$lib';
 
 export const load: PageServerLoad = async ({ locals: { supabase } }) => {
   let userQuery = await supabaseAdminClient.auth.admin.listUsers();
@@ -12,26 +14,16 @@ export const load: PageServerLoad = async ({ locals: { supabase } }) => {
 
   const users = userQuery.data.users;
 
-  let res = await supabase
-    .from('guesses')
-    .select(
-      `
+  let res = await supabase.from('guesses').select(
+    `
     guess_id,
-    user_id,
+    user:user_id (id, first_name),
     match:match_id (
       match_id,
       date,
       time,
-      home:home_id (
-        team_id,
-        country_code,
-        name
-      ),
-      away:away_id (
-        team_id,
-        country_code,
-        name
-      ),
+      home:home_id (team_id, country_code, name, group, win, draw, loss, gf, gaa),
+      away:away_id (team_id, country_code, name, group, win, draw, loss, gf, gaa),
       home_goals,
       away_goals,
       finished
@@ -41,20 +33,13 @@ export const load: PageServerLoad = async ({ locals: { supabase } }) => {
     points,
     points_calculated
   `,
-    )
-    .order('guess_id', { ascending: true });
+  );
 
   if (res.error) {
     error(500, res.error.message);
   }
 
-  let guesses = res.data.map((guess) => {
-    const u = users.find((user: User) => user.id === guess.user_id);
-    return {
-      ...guess,
-      user: u?.user_metadata?.first_name || u?.email || 'Unknown',
-    };
-  });
+  let guesses = sortPredsByDateTime(res.data as unknown as Prediction[]);
 
   return { guesses, users };
 };

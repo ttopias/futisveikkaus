@@ -8,12 +8,11 @@
   export let data: PageData;
   export let form: ActionData;
 
-  let predictions = data?.predictions || [];
   let predictableMatches = data?.predictableMatches || [];
   let currentIndex = 0;
   let carouselLength = data?.predictableMatches.length;
   let groupFilter = '';
-  let uniqueGroups = new Set(predictions.map((p) => p.group));
+  let uniqueGroups = new Set(data?.predictions.map((p) => p.group));
   let matches: any[] = [];
 
   function navigate(direction: number) {
@@ -34,7 +33,7 @@
 
     if ($page.url.searchParams.has('edit')) {
       view = 'edit';
-      matches = predictions.filter((prediction) => {
+      matches = data?.predictions.filter((prediction) => {
         if (groupFilter) {
           return prediction.group === groupFilter;
         }
@@ -262,7 +261,7 @@
                       update();
                       console.log(result);
                       loading = false;
-                      predictions = predictions.filter((p) => p.guess_id !== prediction.guess_id);
+                      matches = matches.filter((p) => p.guess_id !== prediction.guess_id);
                     };
                   }}
                 >

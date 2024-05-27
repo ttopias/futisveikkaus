@@ -41,6 +41,7 @@
     "@tailwindcss/typography": "^0.5.13",
     "@vercel/analytics": "^1.2.2",
     "@vercel/speed-insights": "^1.0.10",
+    "chart.js": "^4.4.3",
     "daisyui": "^4.10.2",
     "svelte-loading-spinners": "^0.3.6",
     "svelte-table": "^0.6.3",

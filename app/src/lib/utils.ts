@@ -1,5 +1,11 @@
 import type { User } from '@supabase/supabase-js';
-import { TeamInTable, TimeInTable } from '$lib/index';
+import {
+  PUBLIC_GROUP_STAGE_ENDS,
+  PUBLIC_R16_ENDS,
+  PUBLIC_QF_ENDS,
+  PUBLIC_SF_ENDS,
+} from '$env/static/public';
+import { TeamInTable, TimeInTable, type Match, type Prediction } from '$lib/index';
 
 export const userColor = (role: string) => {
   if (role === 'admin') return 'stroke-warning';
@@ -22,6 +28,137 @@ export const myRole = (user: User | null) => {
 export const roleAdmin = (user: User | null | undefined) => {
   if (['admin'].includes(user?.user_metadata.role)) return true;
   else return false;
+};
+
+export const sortByDateTime = (list: Match[]): Match[] => {
+  return list.sort((a: Match, b: Match) => {
+    if (a.date < b.date) {
+      return -1;
+    }
+    if (a.date > b.date) {
+      return 1;
+    }
+    if (a.time < b.time) {
+      return -1;
+    }
+    if (a.time > b.time) {
+      return 1;
+    }
+    return 0;
+  });
+};
+
+export const sortPredsByDateTime = (list: Prediction[]): Prediction[] => {
+  return list.sort((a: Prediction, b: Prediction) => {
+    if (a.match.date < b.match.date) {
+      return -1;
+    }
+    if (a.match.date > b.match.date) {
+      return 1;
+    }
+    if (a.match.time < b.match.time) {
+      return -1;
+    }
+    if (a.match.time > b.match.time) {
+      return 1;
+    }
+    return 0;
+  });
+};
+
+export const groupByUser = (predictions: Prediction[]) => {
+  return predictions.reduce((acc: { [key: string]: Prediction[] }, prediction: Prediction) => {
+    const userName = prediction.user?.first_name ?? '';
+    if (!acc[userName]) {
+      acc[userName] = [];
+    }
+    acc[userName].push(prediction);
+    return acc;
+  }, {});
+};
+
+export const transformDataForChart = (groupedPredictions: any) => {
+  return Object.keys(groupedPredictions).map(userName => {
+    return {
+      label: userName,
+      data: groupedPredictions[userName].map((prediction: { date: any; time: any; points: any; }) => ({
+        x: new Date(`${prediction.date}T${prediction.time}`),
+        y: prediction.points
+      }))
+    };
+  });
+};
+
+export const addGroupStageDetailsPreds = (list: Prediction[]): Prediction[] => {
+  return list.map((prediction: Prediction) => {
+    if (new Date(prediction.match.date) < new Date(PUBLIC_GROUP_STAGE_ENDS)) {
+      return {
+        ...prediction,
+        groupStage: true,
+        group: prediction.match.away.group,
+      };
+    } else if (new Date(prediction.match.date) < new Date(PUBLIC_R16_ENDS)) {
+      return {
+        ...prediction,
+        groupStage: false,
+        group: 'R16',
+      };
+    } else if (new Date(prediction.match.date) < new Date(PUBLIC_QF_ENDS)) {
+      return {
+        ...prediction,
+        groupStage: false,
+        group: 'Välierä',
+      };
+    }
+    if (new Date(prediction.match.date) < new Date(PUBLIC_SF_ENDS)) {
+      return {
+        ...prediction,
+        groupStage: false,
+        group: 'Semifinaali',
+      };
+    }
+    return {
+      ...prediction,
+      groupStage: false,
+      group: 'Finaali',
+    };
+  });
+};
+
+export const addGroupStageDetails = (list: Match[]): Match[] => {
+  return list.map((match: Match) => {
+    if (new Date(match.date) < new Date(PUBLIC_GROUP_STAGE_ENDS)) {
+      return {
+        ...match,
+        groupStage: true,
+        group: match.away.group,
+      };
+    } else if (new Date(match.date) < new Date(PUBLIC_R16_ENDS)) {
+      return {
+        ...match,
+        groupStage: false,
+        group: 'R16',
+      };
+    } else if (new Date(match.date) < new Date(PUBLIC_QF_ENDS)) {
+      return {
+        ...match,
+        groupStage: false,
+        group: 'Välierä',
+      };
+    }
+    if (new Date(match.date) < new Date(PUBLIC_SF_ENDS)) {
+      return {
+        ...match,
+        groupStage: false,
+        group: 'Semifinaali',
+      };
+    }
+    return {
+      ...match,
+      groupStage: false,
+      group: 'Finaali',
+    };
+  });
 };
 
 export const rules = [

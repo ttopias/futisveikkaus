@@ -1,5 +1,5 @@
 import type { Match, Team } from '$lib/index';
-import { roleAdmin } from '$lib/utils';
+import { roleAdmin, sortByDateTime } from '$lib/utils';
 import type { Actions, PageServerLoad } from './$types';
 import { fail } from '@sveltejs/kit';
 
@@ -30,8 +30,7 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
     away_goals,
     finished
   `,
-    )
-    .order('date', { ascending: true });
+    );
 
   if (error) {
     console.error('error', error);
@@ -42,6 +41,7 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
   }
 
   matches = data as unknown as Match[];
+  matches = sortByDateTime(matches);
 
   const res = await supabase.from('teams').select('*');
 

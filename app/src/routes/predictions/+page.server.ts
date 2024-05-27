@@ -1,29 +1,26 @@
 import { error, fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import type { Match, Prediction } from '$lib/index';
-import { myUser } from '$lib/utils';
 import {
-  PUBLIC_GROUP_STAGE_ENDS,
-  PUBLIC_R16_ENDS,
-  PUBLIC_QF_ENDS,
-  PUBLIC_SF_ENDS,
-} from '$env/static/public';
+  addGroupStageDetails,
+  addGroupStageDetailsPreds,
+  myUser,
+  sortByDateTime,
+  sortPredsByDateTime,
+} from '$lib/utils';
 
 export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession } }) => {
   const { user } = await safeGetSession();
 
   let predictions: Prediction[] = [];
   let predictableMatches: Match[] = [];
-  let groups: string[] = [];
 
   if (!myUser(user)) {
     error(401, 'Unauthorized');
   }
 
-  let res = await supabase
-    .from('guesses')
-    .select(
-      `
+  let res = await supabase.from('guesses').select(
+    `
     guess_id,
     user_id,
     match:match_id (
@@ -41,10 +38,15 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
     points,
     points_calculated
   `,
-    )
-    .eq('user_id', user.id);
+  );
+
+  if (res.error) {
+    console.error('Error fetching predictions:', res.error);
+    return { user, predictions, predictableMatches };
+  }
 
   predictions = res.data as unknown as Prediction[];
+  predictions = predictions.filter((p) => p.user_id === user.id);
 
   const predictionsMade = predictions?.map((p: Prediction) => p.match.match_id);
 
@@ -84,39 +86,8 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
       return m;
     });
 
-  predictions = predictions.map((prediction) => {
-    if (new Date(prediction.match.date) < new Date(PUBLIC_GROUP_STAGE_ENDS)) {
-      return {
-        ...prediction,
-        groupStage: true,
-        group: prediction.match.away.group,
-      };
-    } else if (new Date(prediction.match.date) < new Date(PUBLIC_R16_ENDS)) {
-      return {
-        ...prediction,
-        groupStage: false,
-        group: 'R16',
-      };
-    } else if (new Date(prediction.match.date) < new Date(PUBLIC_QF_ENDS)) {
-      return {
-        ...prediction,
-        groupStage: false,
-        group: 'Välierä',
-      };
-    }
-    if (new Date(prediction.match.date) < new Date(PUBLIC_SF_ENDS)) {
-      return {
-        ...prediction,
-        groupStage: false,
-        group: 'Semifinaali',
-      };
-    }
-    return {
-      ...prediction,
-      groupStage: false,
-      group: 'Finaali',
-    };
-  });
+  predictableMatches = sortByDateTime(addGroupStageDetails(predictableMatches));
+  predictions = sortPredsByDateTime(addGroupStageDetailsPreds(predictions));
 
   return { user, predictions, predictableMatches };
 };
