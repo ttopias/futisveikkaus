@@ -40,7 +40,7 @@ export const load: PageServerLoad = async ({ locals: { supabase } }) => {
   matches = data as unknown as Match[];
 
   matches = matches.map((match) => {
-    if (new Date(match.date) < new Date(PUBLIC_GROUP_STAGE_ENDS)) {
+    if (new Date(match.date) <= new Date(PUBLIC_GROUP_STAGE_ENDS)) {
       return {
         ...match,
         groupStage: true,
@@ -59,17 +59,19 @@ export const load: PageServerLoad = async ({ locals: { supabase } }) => {
         group: 'Välierä',
       };
     }
-    if (new Date(match.date) < new Date(PUBLIC_SF_ENDS)) {
+    else if (new Date(match.date) < new Date(PUBLIC_SF_ENDS)) {
       return {
         ...match,
         groupStage: false,
         group: 'Semifinaali',
       };
     }
-    return {
-      ...match,
-      groupStage: false,
-      group: 'Finaali',
+    else {
+      return {
+        ...match,
+        groupStage: false,
+        group: 'Finaali',
+      };
     };
   });
 
