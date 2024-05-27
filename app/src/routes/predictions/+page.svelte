@@ -12,6 +12,9 @@
   let predictableMatches = data?.predictableMatches || [];
   let currentIndex = 0;
   let carouselLength = data?.predictableMatches.length;
+  let groupFilter = '';
+  let uniqueGroups = new Set(predictions.map((p) => p.group));
+  let matches: any[] = [];
 
   function navigate(direction: number) {
     currentIndex += direction;
@@ -28,8 +31,15 @@
     if ($page.url.searchParams.has('create')) {
       view = 'create';
     }
+
     if ($page.url.searchParams.has('edit')) {
       view = 'edit';
+      matches = predictions.filter((prediction) => {
+        if (groupFilter) {
+          return prediction.group === groupFilter;
+        }
+        return true;
+      });
     }
   }
 
@@ -38,7 +48,7 @@
 
 <div in:fade class="pt-4">
   {#if view == 'create'}
-    <div class="mx-4 form-control w-52 py-4">
+    <div class="flex flex-row justify-between mx-4 form-control w-full py-4">
       <div class="btn btn-primary">
         <a href="?edit ">MUOKKAA ARVAUKSIA</a>
       </div>
@@ -51,7 +61,7 @@
       <div
         class="card h-full relative carousel carousel-center m-4 p-4 glass border-inherit shadow-lg rounded-xl"
       >
-        {#each data?.predictableMatches as match, index}
+        {#each predictableMatches as match, index}
           <form
             class={`card-content carousel-item ${index === currentIndex ? 'block' : 'hidden'}`}
             method="POST"
@@ -134,43 +144,60 @@
         <div
           class="absolute flex justify-between transform -translate-y-4/5 left-5 right-5 top-4/5"
         >
-          <button class="btn btn-circle" on:click={() => navigate(-1)}>❮</button>
-          <button class="btn btn-circle" on:click={() => navigate(1)}>❯</button>
+          {#if currentIndex > 0}
+            <button class="btn btn-circle" on:click={() => navigate(-1)}>❮</button>
+          {:else}
+            <button class="btn btn-circle invisible">❮</button>
+          {/if}
+          {#if currentIndex < carouselLength - 1}
+            <button class="btn btn-circle" on:click={() => navigate(1)}>❯</button>
+          {:else}
+            <button class="btn btn-circle invisible">❯</button>
+          {/if}
         </div>
       </div>
     {/if}
 
     <!-- UPDATE PREDICTIONS -->
   {:else if view == 'edit'}
-    <div class="mx-4 form-control w-52 py-4">
+    <div class="flex flex-row justify-between mx-4 form-control w-full py-4">
       <div class="btn btn-primary">
         <a href="?create ">TAKAISIN</a>
       </div>
+      <select class="select select-bordered w-64" bind:value={groupFilter}>
+        <option value="">Kaikki</option>
+        {#each Array.from(uniqueGroups) as group}
+          <option value={group}>{group}</option>
+        {/each}
+      </select>
     </div>
 
-    {#if !predictions || predictions.length === 0}
+    {#if !matches || matches.length === 0}
       <div>Et ole vielä luonut veikkauksia</div>
     {:else}
       <ul
         class="card glass h-full relative carousel carousel-center m-4 p-4 border-inherit shadow-lg rounded-xl"
       >
-        {#each predictions as prediction}
+        {#if groupFilter}
+          <div class="card-title text-accent-content text-2xl justify-center">
+            Lohko {groupFilter} ottelut
+          </div>
+        {/if}
+        {#each matches as prediction}
           <form
             class="card-content my-4"
             method="POST"
             action="?/update"
             use:enhance={() => {
               loading = true;
-              return async ({ result, update }) => {
-                update();
+              return async ({ result }) => {
                 console.log(result);
                 loading = false;
               };
             }}
           >
             <div class="form-control">
-              <input type="hidden" name="match_id" value={prediction.match.match_id} />
-
+              <input type="hidden" name="guess_id" value={prediction.guess_id} />
               <div class="card-title text-accent-content text-2xl justify-center">
                 <Time timestamp={prediction.match?.date} format="DD.MM.YYYY" />
                 {' '}{prediction.match?.time}
@@ -195,7 +222,7 @@
                       pattern="[0-9]*"
                       type="number"
                       min="0"
-                      value={form?.home_goals ?? 0}
+                      value={prediction?.home_goals ?? 0}
                     />
                   </label>
                 </div>
@@ -218,7 +245,7 @@
                       pattern="[0-9]*"
                       type="number"
                       min="0"
-                      value={form?.away_goals ?? 0}
+                      value={prediction?.away_goals ?? 0}
                     />
                   </label>
                 </div>

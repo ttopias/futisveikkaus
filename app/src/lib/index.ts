@@ -1,9 +1,7 @@
 import Content from '$lib/components/Content.svelte';
-import DashboardPage from '$lib/components/DashboardPage.svelte';
 import Modal from '$lib/components/Modal.svelte';
 import Portal from '$lib/components/Portal.svelte';
 import RoleBadge from '$lib/components/RoleBadge.svelte';
-import TableActions from '$lib/components/TableActions.svelte';
 import TeamInTable from '$lib/components/TeamInTable.svelte';
 import TimeInTable from '$lib/components/TimeInTable.svelte';
 import Trigger from '$lib/components/Trigger.svelte';
@@ -27,6 +25,8 @@ export type Match = {
   away_goals: number;
   finished: boolean;
   index?: number;
+  groupStage?: boolean;
+  group?: string;
 };
 
 export type Prediction = {
@@ -36,6 +36,8 @@ export type Prediction = {
   away_goals: number;
   points: number;
   points_calculated: number;
+  groupStage?: boolean;
+  group?: string;
 };
 
 export type Team = {
@@ -56,14 +58,4 @@ export type User = {
   first_name: string;
 };
 
-export {
-  Content,
-  DashboardPage,
-  Modal,
-  Portal,
-  RoleBadge,
-  TableActions,
-  TeamInTable,
-  TimeInTable,
-  Trigger,
-};
+export { Content, Modal, Portal, RoleBadge, TeamInTable, TimeInTable, Trigger };

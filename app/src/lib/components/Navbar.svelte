@@ -7,7 +7,6 @@
 
   const role: string = $page.data.user?.user_metadata?.role || '';
   let isMenuOpen = false;
-  let isUserMenuOpen = false;
 </script>
 
 <nav class="bg-accent text-accent-content w-full p-2 shadow-2xl">
@@ -19,7 +18,6 @@
           <button
             on:click={() => {
               isMenuOpen = false;
-              isUserMenuOpen = false;
             }}
             class="flex items-center space-x-3 rtl:space-x-reverse"
           >
@@ -49,7 +47,7 @@
           >
           {#if $page.data.user}
             <a
-              href="/predictions"
+              href="/predictions?create"
               class="link no-underline px-3 py-2 rounded-md text-sm font-medium"
               aria-current={$page.url.pathname === '/predictions' ? 'page' : undefined}
               >Veikkaukset</a
@@ -66,19 +64,20 @@
           <div class="hidden sm:flex flex-grow items-center justify-center space-x-4">
             <a
               href="/admin/matches"
-              class="link no-underline px-3 py-2 rounded-md text-sm font-medium text-accent"
+              class="link no-underline px-3 py-2 rounded-md text-sm font-medium text-accent-content"
               aria-current={$page.url.pathname === '/admin/matches' ? 'page' : undefined}
               >Otteluohjelma</a
             >
             <a
               href="/admin/teams"
-              class="link no-underline px-3 py-2 rounded-md text-sm font-medium text-accent"
+              class="link no-underline px-3 py-2 rounded-md text-sm font-medium text-accent-content"
               aria-current={$page.url.pathname === '/admin/teams' ? 'page' : undefined}>Joukkueet</a
             >
             <a
-              href="/admin/users"
-              class="link no-underline px-3 py-2 rounded-md text-sm font-medium text-accent"
-              aria-current={$page.url.pathname === '/admin/users' ? 'page' : undefined}>Käyttäjät</a
+              href="/admin/guesses"
+              class="link no-underline px-3 py-2 rounded-md text-sm font-medium text-accent-content"
+              aria-current={$page.url.pathname === '/admin/guesses' ? 'page' : undefined}
+              >Arvaukset</a
             >
           </div>
         {/if}
@@ -157,12 +156,14 @@
         class="w-full block h-6 px-3 py-2 rounded-md text-base font-medium"
         aria-current={$page.url.pathname === '/' ? 'page' : undefined}>Etusivu</a
       >
+      <div class="divider divider-neutral opacity-25 py-4" />
       <a
         on:click={() => (isMenuOpen = !isMenuOpen)}
         href="/matches"
         class="w-full block h-6 px-3 py-2 rounded-md text-base font-medium"
         aria-current={$page.url.pathname === '/matches' ? 'page' : undefined}>Otteluohjelma</a
       >
+      <div class="divider divider-neutral opacity-25 py-4" />
       <a
         on:click={() => (isMenuOpen = !isMenuOpen)}
         href="/teams"
@@ -172,34 +173,39 @@
 
       <!-- User-specific -->
       {#if $page.data.user}
+        <div class="divider divider-neutral opacity-25 py-4" />
         <a
           on:click={() => (isMenuOpen = !isMenuOpen)}
-          href="/predictions"
+          href="/predictions?create"
           class="w-full block h-6 px-3 py-2 rounded-md text-base font-medium"
           aria-current={$page.url.pathname === '/predictions' ? 'page' : undefined}>Veikkaukset</a
         >
+        <div class="divider divider-neutral opacity-25 py-4" />
         <a
           on:click={() => (isMenuOpen = !isMenuOpen)}
           href="/standings"
           class="w-full block h-6 px-3 py-2 rounded-md text-base font-medium"
           aria-current={$page.url.pathname === '/standings' ? 'page' : undefined}>Pistetilanne</a
         >
+        <div class="divider divider-neutral opacity-25 py-4" />
         <a
           on:click={() => (isMenuOpen = !isMenuOpen)}
           href="/profile"
           class="w-full block h-6 px-3 py-2 rounded-md text-base font-medium"
           aria-current={$page.url.pathname === '/profile' ? 'page' : undefined}>Profiili</a
         >
+        <div class="divider divider-neutral opacity-25 py-4" />
         <a
           on:click={() => (isMenuOpen = !isMenuOpen)}
           href="/standings"
-          class="w-full flex h-6 px-3 py-6 rounded-md text-base font-medium"
-          ><LogOutIcon class="mr-2" />Sign out
+          class="w-full flex h-6 px-3 rounded-md text-base font-medium"
+          ><LogOutIcon class="mr-2" />KIRJAUDU ULOS
         </a>
       {/if}
 
       <!-- Admin-specific -->
       {#if isAdmin(role)}
+        <div class="divider divider-neutral opacity-25 py-4" />
         <a
           on:click={() => (isMenuOpen = !isMenuOpen)}
           href="/admin/matches"
@@ -215,9 +221,9 @@
         >
         <a
           on:click={() => (isMenuOpen = !isMenuOpen)}
-          href="/admin/users"
+          href="/admin/guesses"
           class="w-full text-accent-content block h-6 px-3 py-2 rounded-md text-base font-medium"
-          aria-current={$page.url.pathname === '/admin/users' ? 'page' : undefined}>Käyttäjät</a
+          aria-current={$page.url.pathname === '/admin/guesses' ? 'page' : undefined}>Arvaukset</a
         >
       {/if}
 

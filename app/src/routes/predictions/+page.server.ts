@@ -2,12 +2,19 @@ import { error, fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import type { Match, Prediction } from '$lib/index';
 import { myUser } from '$lib/utils';
+import {
+  PUBLIC_GROUP_STAGE_ENDS,
+  PUBLIC_R16_ENDS,
+  PUBLIC_QF_ENDS,
+  PUBLIC_SF_ENDS,
+} from '$env/static/public';
 
 export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession } }) => {
   const { user } = await safeGetSession();
 
   let predictions: Prediction[] = [];
   let predictableMatches: Match[] = [];
+  let groups: string[] = [];
 
   if (!myUser(user)) {
     error(401, 'Unauthorized');
@@ -23,16 +30,8 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
       match_id,
       date,
       time,
-      home:home_id (
-        team_id,
-        country_code,
-        name
-      ),
-      away:away_id (
-        team_id,
-        country_code,
-        name
-      ),
+      home:home_id (team_id, country_code, name, group, win, draw, loss, gf, gaa),
+      away:away_id (team_id, country_code, name, group, win, draw, loss, gf, gaa),
       home_goals,
       away_goals,
       finished
@@ -85,6 +84,40 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
       return m;
     });
 
+  predictions = predictions.map((prediction) => {
+    if (new Date(prediction.match.date) < new Date(PUBLIC_GROUP_STAGE_ENDS)) {
+      return {
+        ...prediction,
+        groupStage: true,
+        group: prediction.match.away.group,
+      };
+    } else if (new Date(prediction.match.date) < new Date(PUBLIC_R16_ENDS)) {
+      return {
+        ...prediction,
+        groupStage: false,
+        group: 'R16',
+      };
+    } else if (new Date(prediction.match.date) < new Date(PUBLIC_QF_ENDS)) {
+      return {
+        ...prediction,
+        groupStage: false,
+        group: 'Välierä',
+      };
+    }
+    if (new Date(prediction.match.date) < new Date(PUBLIC_SF_ENDS)) {
+      return {
+        ...prediction,
+        groupStage: false,
+        group: 'Semifinaali',
+      };
+    }
+    return {
+      ...prediction,
+      groupStage: false,
+      group: 'Finaali',
+    };
+  });
+
   return { user, predictions, predictableMatches };
 };
 
@@ -101,10 +134,10 @@ export const actions: Actions = {
 
     const form_data = await request.formData();
     const match_id = form_data.get('match_id');
-    const home_goals = form_data.get('home_goals');
-    const away_goals = form_data.get('away_goals');
+    const home_goals = parseInt(form_data.get('home_goals')?.toString() || '0');
+    const away_goals = parseInt(form_data.get('away_goals')?.toString() || '0');
 
-    if (!match_id || !home_goals || !away_goals) {
+    if (!match_id) {
       return fail(400, {
         message: 'Missing required fields',
         match_id,
@@ -178,6 +211,8 @@ export const actions: Actions = {
     return {
       success: true,
       message: 'Prediction updated',
+      home_goals,
+      away_goals,
     };
   },
 

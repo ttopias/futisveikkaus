@@ -6,7 +6,7 @@
   export let data: PageData;
 </script>
 
-<div>
+<div class="min-w-fit">
   {#if !data.matches || data.matches.length === 0}
     <p>Jotain meni pieleen...</p>
   {:else}

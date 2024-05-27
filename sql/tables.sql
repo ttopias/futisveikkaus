@@ -38,7 +38,6 @@ CREATE TABLE dashboard (
     first_name text
 );
 
-
 -- DATABASE CONSTRAINTS AND INDEXES
 ALTER TABLE matches ADD CONSTRAINT matches_home_fk FOREIGN KEY (home_id) REFERENCES teams(team_id);
 ALTER TABLE matches ADD CONSTRAINT matches_away_fk FOREIGN KEY (away_id) REFERENCES teams(team_id);

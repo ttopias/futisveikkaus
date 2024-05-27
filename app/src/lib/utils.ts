@@ -84,6 +84,12 @@ export const teamTableCols = [
 
 export const matchTableCols = [
   {
+    key: 'group',
+    title: 'LOHKO',
+    value: (v: any) => v.group,
+    sortable: false,
+  },
+  {
     key: 'date',
     title: 'PVM',
     renderComponent: {
