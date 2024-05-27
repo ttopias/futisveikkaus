@@ -46,32 +46,40 @@ export const load: PageServerLoad = async ({ locals: { supabase } }) => {
         groupStage: true,
         group: match.home.group,
       };
-    } else if (new Date(match.date) < new Date(PUBLIC_R16_ENDS)) {
+    } 
+    if (new Date(match.date) < new Date(PUBLIC_R16_ENDS)) {
       return {
         ...match,
         groupStage: false,
         group: 'R16',
       };
-    } else if (new Date(match.date) < new Date(PUBLIC_QF_ENDS)) {
+    } 
+    if (new Date(match.date) < new Date(PUBLIC_QF_ENDS)) {
       return {
         ...match,
         groupStage: false,
         group: 'Välierä',
       };
     }
-    else if (new Date(match.date) < new Date(PUBLIC_SF_ENDS)) {
+    if (new Date(match.date) < new Date(PUBLIC_SF_ENDS)) {
       return {
         ...match,
         groupStage: false,
         group: 'Semifinaali',
       };
     }
-    else {
+    if (new Date(match.date) >= new Date(PUBLIC_SF_ENDS)) {
       return {
         ...match,
         groupStage: false,
         group: 'Finaali',
       };
+    };
+
+    return {
+      ...match,
+      groupStage: false,
+      group: '',
     };
   });
 
