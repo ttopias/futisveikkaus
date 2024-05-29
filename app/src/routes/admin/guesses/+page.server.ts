@@ -6,14 +6,6 @@ import { sortPredsByDateTime } from '$lib/utils';
 import type { Prediction } from '$lib';
 
 export const load: PageServerLoad = async ({ locals: { supabase } }) => {
-  let userQuery = await supabaseAdminClient.auth.admin.listUsers();
-
-  if (userQuery.error) {
-    error(500, userQuery.error.message);
-  }
-
-  const users = userQuery.data.users;
-
   let res = await supabase.from('guesses').select(
     `
     guess_id,
@@ -41,7 +33,7 @@ export const load: PageServerLoad = async ({ locals: { supabase } }) => {
 
   let guesses = sortPredsByDateTime(res.data as unknown as Prediction[]);
 
-  return { guesses, users };
+  return { guesses };
 };
 
 export const actions: Actions = {

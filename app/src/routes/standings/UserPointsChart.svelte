@@ -47,33 +47,33 @@
         bottom: '3%',
         containLabel: true,
       },
-      legend: {
-        data: chartData.map((user) => user.label),
-        textStyle: {
-          color: '#4A5568',
-        },
-      },
+      // legend: {
+      //   data: chartData.map((user) => user.label),
+      //   textStyle: {
+      //     color: '#4A5568',
+      //   },
+      // },
       xAxis: {
         type: 'time',
         boundaryGap: false,
         axisLine: {
           lineStyle: {
-            color: '#A0AEC0',
+            color: '#ffffff',
           },
         },
         axisLabel: {
-          color: '#4A5568',
+          color: '#ffffff',
         },
       },
       yAxis: {
         type: 'value',
         axisLine: {
           lineStyle: {
-            color: '#A0AEC0',
+            color: '#ffffff',
           },
         },
         axisLabel: {
-          color: '#4A5568',
+          color: '#ffffff',
         },
       },
       series: chartData.map((user) => ({
@@ -91,6 +91,11 @@
         },
         labelLayout: {
           moveOverlap: 'shiftY',
+        },
+        endLabel: {
+          show: true,
+          formatter: '{a}',
+          distance: -20
         },
         emphasis: {
           focus: 'series',
@@ -112,6 +117,4 @@
   });
 </script>
 
-<div class="card glass max-w-4xl min-w-64 m-4 p-4 border-inherit shadow-lg rounded-xl">
-  <div id="chart" class="w-full h-96"></div>
-</div>
+  <div id="chart" class="w-full h-96 p-4" />

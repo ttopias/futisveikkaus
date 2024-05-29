@@ -8,13 +8,77 @@
   let loading = false;
 </script>
 
-<div class="grid grid-cols-2 md:grid-cols-3 w-full m-4 gap-2 justify-center">
-  {#if !data?.teams || Object.keys(data?.teams).length === 0}
-    <p>No teams found</p>
-  {:else}
+<Modal small>
+  <Content class="glass card rounded-btn pt-2">
+    <div class="card-title justify-center">Add Team</div>
+    <form
+      method="POST"
+      action="?/create"
+      use:enhance={() => {
+        loading = true;
+        return async ({ result, update }) => {
+          update();
+          loading = false;
+        };
+      }}
+    >
+      <div class="form-control card-body">
+        {#if form?.error}
+          <div class="alert alert-error">{form.error}</div>
+        {/if}
+
+        <label class="input input-bordered flex items-center gap-2">
+          <span class="">ISO 3166 code</span>
+          <input
+            id="country_code"
+            name="country_code"
+            class="grow"
+            placeholder="de"
+            type="text"
+            value={form?.country_code ?? ''}
+          />
+        </label>
+
+        <label class="input input-bordered flex items-center gap-2">
+          <span class="">Name</span>
+          <input
+            id="name"
+            name="name"
+            class="grow"
+            placeholder="Germany"
+            type="text"
+            value={form?.name ?? ''}
+          />
+        </label>
+
+        <label class="input input-bordered flex items-center gap-2">
+          <span class="">Group</span>
+          <input
+            id="group"
+            name="group"
+            class="grow"
+            placeholder="A"
+            type="text"
+            value={form?.group ?? ''}
+          />
+        </label>
+      </div>
+      <div class="form-control mx-4 mb-4">
+        <button type="submit" class="btn btn-primary" class:loading>ADD TEAM</button>
+      </div>
+    </form>
+  </Content>
+  <Trigger><button class="my-2 btn btn-primary rounded-btn">Add team</button></Trigger>
+</Modal>
+{#if !data?.teams || Object.keys(data?.teams).length === 0}
+<p>No teams found</p>
+{:else}
+<div
+class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 text-primary-content"
+>
     {#each Object.keys(data?.teams) as group}
       <div class="card w-96 glass card-bordered card-compact my-4 pt-4 shadow-xl">
-        <div class="pt-1 card-title justify-center">Group {group}</div>
+        <div class="pt-1 card-title justify-center">Lohko {group}</div>
         <div class="card-body">
           {#each data?.teams[group] as team}
             <Modal small>
@@ -153,67 +217,5 @@
         </div>
       </div>
     {/each}
+  </div>
   {/if}
-  <Modal small>
-    <Content class="glass card rounded-btn pt-2">
-      <div class="card-title justify-center">Add Team</div>
-      <form
-        method="POST"
-        action="?/create"
-        use:enhance={() => {
-          loading = true;
-          return async ({ result, update }) => {
-            update();
-            loading = false;
-          };
-        }}
-      >
-        <div class="form-control card-body">
-          {#if form?.error}
-            <div class="alert alert-error">{form.error}</div>
-          {/if}
-
-          <label class="input input-bordered flex items-center gap-2">
-            <span class="">ISO 3166 code</span>
-            <input
-              id="country_code"
-              name="country_code"
-              class="grow"
-              placeholder="de"
-              type="text"
-              value={form?.country_code ?? ''}
-            />
-          </label>
-
-          <label class="input input-bordered flex items-center gap-2">
-            <span class="">Name</span>
-            <input
-              id="name"
-              name="name"
-              class="grow"
-              placeholder="Germany"
-              type="text"
-              value={form?.name ?? ''}
-            />
-          </label>
-
-          <label class="input input-bordered flex items-center gap-2">
-            <span class="">Group</span>
-            <input
-              id="group"
-              name="group"
-              class="grow"
-              placeholder="A"
-              type="text"
-              value={form?.group ?? ''}
-            />
-          </label>
-        </div>
-        <div class="form-control mx-4 mb-4">
-          <button type="submit" class="btn btn-primary" class:loading>ADD TEAM</button>
-        </div>
-      </form>
-    </Content>
-    <Trigger><button class="my-2 btn btn-primary rounded-btn">Add team</button></Trigger>
-  </Modal>
-</div>

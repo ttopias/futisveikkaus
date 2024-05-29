@@ -1,5 +1,5 @@
 import type { Match, Team } from '$lib/index';
-import { roleAdmin, sortByDateTime } from '$lib/utils';
+import { addGroupStageDetails, roleAdmin, sortByDateTime } from '$lib/utils';
 import type { Actions, PageServerLoad } from './$types';
 import { fail } from '@sveltejs/kit';
 
@@ -40,7 +40,7 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
 
   matches = data as unknown as Match[];
   matches = sortByDateTime(matches);
-
+  matches = addGroupStageDetails(matches);
   const res = await supabase.from('teams').select('*');
 
   if (res.error) {

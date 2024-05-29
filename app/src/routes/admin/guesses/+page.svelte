@@ -1,19 +1,16 @@
 <script lang="ts">
-  import type { User } from '@supabase/supabase-js';
   import type { PageData } from './$types';
   import SvelteTable from 'svelte-table';
 
   export let data: PageData;
   let guesses: any[] = data.guesses;
-  let users: User[] = data.users;
 
   let userFilter = '';
+  let uniqueUsers = new Set(guesses.map((guess) => guess.user.first_name));
 
   $: filteredGuesses = userFilter
-    ? guesses.filter((guess) => guess.user.id === userFilter)
+    ? guesses.filter((guess) => guess.user.first_name === userFilter)
     : guesses;
-
-  console.log('filteredGuesses :>> ', filteredGuesses);
 
   let columns = [
     {
@@ -61,14 +58,14 @@
   ];
 </script>
 
-<div class="">
-  <select class="select block w-full" name="user" id="user" bind:value={userFilter}>
-    <option value="">Kaikki</option>
-    {#each users as user}
-      <option value={user.id}>{user.user_metadata.first_name}</option>
-    {/each}
-  </select>
+<select class="select block my-4 justify-end" name="user" id="user" bind:value={userFilter}>
+  <option value="">Kaikki</option>
+  {#each uniqueUsers as user}
+    <option value={user}>{user}</option>
+  {/each}
+</select>
 
+<div class="card glass justify-between items-center">
   <SvelteTable
     {columns}
     rows={filteredGuesses}

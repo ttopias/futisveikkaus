@@ -2,34 +2,31 @@
   import '../app.postcss';
   import { navigating } from '$app/stores';
   import Navbar from '$lib/components/Navbar.svelte';
-  import { onMount } from 'svelte';
   import { Jumper } from 'svelte-loading-spinners';
-  import { MoonIcon, SunIcon } from 'svelte-feather-icons';
-  import { themeChange } from 'theme-change';
+  import { PUBLIC_APP_NAME } from '$env/static/public';
+  // import { onMount } from 'svelte';
+  // import { MoonIcon, SunIcon } from 'svelte-feather-icons';
+  // import { themeChange } from 'theme-change';
 
-  onMount(() => {
-    themeChange(false);
-  });
+  // onMount(() => {
+  //   themeChange(false);
+  // });
 </script>
 
 <svelte:head>
-  <title>Futisveikkaus</title>
+  <title>{PUBLIC_APP_NAME}</title>
 </svelte:head>
 
 <div id="body" class="mx-auto min-h-screen flex flex-col overflow-y-auto">
   <Navbar />
 
   <!-- CONTENT -->
-  <main class="flex-1 py-4 text-primary-content">
-    <div class="flex items-center justify-center">
-      {#if $navigating}
-        <div class="align-middle">
-          <Jumper size="120" unit="px" duration="1s" color="#FF3E00" />
-        </div>
-      {:else}
-        <slot />
-      {/if}
-    </div>
+  <main class="container flex-1 flex flex-col items-center text-primary-content">
+    {#if $navigating}
+      <Jumper size="120" unit="px" duration="1s" color="#FF3E00" />
+    {:else}
+      <slot />
+    {/if}
   </main>
 
   <!-- FOOTER -->
