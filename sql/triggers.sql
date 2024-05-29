@@ -67,3 +67,7 @@ AFTER DELETE ON guesses
 FOR EACH ROW
 WHEN (OLD.points_calculated = TRUE)
 EXECUTE FUNCTION update_user_points_aggregate();
+
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute procedure public.handle_new_user();

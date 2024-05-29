@@ -32,10 +32,15 @@ CREATE TABLE IF NOT EXISTS guesses (
 	PRIMARY KEY ("guess_id")
 );
 
-CREATE TABLE dashboard (
+CREATE TABLE IF NOT EXISTS dashboard (
     user_id uuid PRIMARY KEY,
     total_points int,
     first_name text
+);
+
+create table profiles (
+  id uuid references auth.users on delete cascade not null primary key,
+  first_name text unique,
 );
 
 -- DATABASE CONSTRAINTS AND INDEXES

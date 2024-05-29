@@ -88,38 +88,52 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE FUNCTION update_team_statistics()
 RETURNS TRIGGER AS $$
 BEGIN
-    WITH updated_stats AS (
+    WITH updated_home_stats AS (
         SELECT 
             home_id AS team_id, 
             SUM(CASE WHEN home_goals > away_goals THEN 1 ELSE 0 END) AS wins,
-            SUM(CASE WHEN home_goals = away_goals AND NEW.finished = TRUE THEN 1 ELSE 0 END) AS draws,
+            SUM(CASE WHEN home_goals = away_goals THEN 1 ELSE 0 END) AS draws,
             SUM(CASE WHEN home_goals < away_goals THEN 1 ELSE 0 END) AS losses,
             SUM(home_goals) AS goals_for,
             SUM(away_goals) AS goals_against
         FROM matches
-        WHERE finished = TRUE AND home_id = NEW.home_id OR away_id = NEW.away_id
+        WHERE finished = TRUE AND home_id = NEW.home_id
         GROUP BY home_id
-        UNION ALL
+    ), updated_away_stats AS (
         SELECT 
             away_id AS team_id, 
             SUM(CASE WHEN away_goals > home_goals THEN 1 ELSE 0 END) AS wins,
-            SUM(CASE WHEN away_goals = home_goals AND NEW.finished = TRUE THEN 1 ELSE 0 END) AS draws,
+            SUM(CASE WHEN away_goals = home_goals THEN 1 ELSE 0 END) AS draws,
             SUM(CASE WHEN away_goals < home_goals THEN 1 ELSE 0 END) AS losses,
             SUM(away_goals) AS goals_for,
             SUM(home_goals) AS goals_against
         FROM matches
-        WHERE finished = TRUE AND home_id = NEW.home_id OR away_id = NEW.away_id
+        WHERE finished = TRUE AND away_id = NEW.away_id
         GROUP BY away_id
+    ), combined_stats AS (
+        SELECT 
+            team_id,
+            SUM(wins) AS wins,
+            SUM(draws) AS draws,
+            SUM(losses) AS losses,
+            SUM(goals_for) AS goals_for,
+            SUM(goals_against) AS goals_against
+        FROM (
+            SELECT * FROM updated_home_stats
+            UNION ALL
+            SELECT * FROM updated_away_stats
+        ) AS all_stats
+        GROUP BY team_id
     )
-    UPDATE teams 
+    UPDATE teams
     SET 
-        win = updated_stats.wins,
-        draw = updated_stats.draws,
-        loss = updated_stats.losses,
-        gf = updated_stats.goals_for,
-        gaa = updated_stats.goals_against
-    FROM updated_stats
-    WHERE teams.team_id = updated_stats.team_id;
+        win = combined_stats.wins,
+        draw = combined_stats.draws,
+        loss = combined_stats.losses,
+        gf = combined_stats.goals_for,
+        gaa = combined_stats.goals_against
+    FROM combined_stats
+    WHERE teams.team_id = combined_stats.team_id;
 
     RETURN NEW;
 END;
@@ -149,3 +163,24 @@ BEGIN
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+create function public.handle_new_user()
+returns trigger as $$
+begin
+  insert into public.profiles (id, first_name)
+  values (new.id, new.raw_user_meta_data->>'first_name');
+  return new;
+end;
+$$ language plpgsql security definer;
+
+alter table profiles
+  enable row level security;
+
+create policy "Public profiles are viewable by everyone." on profiles
+  for select using (true);
+
+create policy "Users can insert their own profile." on profiles
+  for insert with check ((select auth.uid()) = id);
+
+create policy "Users can update own profile." on profiles
+  for update using ((select auth.uid()) = id);
