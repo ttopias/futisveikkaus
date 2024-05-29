@@ -16,10 +16,8 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
   let matches: Match[] = [];
   let teams: Team[] = [];
 
-  let { data, error } = await supabase
-    .from('matches')
-    .select(
-      `
+  let { data, error } = await supabase.from('matches').select(
+    `
     match_id,
     predictable_until,
     date,
@@ -30,7 +28,7 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
     away_goals,
     finished
   `,
-    );
+  );
 
   if (error) {
     console.error('error', error);

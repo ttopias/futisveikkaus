@@ -76,6 +76,13 @@
           >
             <div class="form-control">
               <div class="card-title text-accent-content text-2xl justify-center">
+                {#if match?.groupStage}
+                  Lohko {match?.group}
+                {:else}
+                  {match?.group}
+                {/if}
+              </div>
+              <div class="card-title text-accent-content text-2xl justify-center">
                 <Time timestamp={match?.date} format="DD.MM.YYYY" />
                 {' '}{match?.time}
               </div>

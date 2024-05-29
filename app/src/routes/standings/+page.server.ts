@@ -48,11 +48,14 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
     // console.error('Error fetching data @standings:', sec_res.error.message);
     return { standings, predictions };
   }
-  predictions = sortPredsByDateTime(sec_res.data as unknown as Prediction[])
-    .filter((p) => p.points_calculated);
+  predictions = sortPredsByDateTime(sec_res.data as unknown as Prediction[]).filter(
+    (p) => p.points_calculated,
+  );
 
   const groupedPredictions = groupByUser(predictions);
   const chartData = transformDataForChart(groupedPredictions);
+
+  // chartData.map((x) => console.log(x));
 
   return { standings, chartData };
 };

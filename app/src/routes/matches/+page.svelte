@@ -11,18 +11,18 @@
   // let uniqueGroups = new Set(data?.matches?.map((p) => p.group)) || [];
 
   $: matches = data?.matches?.filter((match) => {
-        if (groupFilter) {
-          return match.group === groupFilter;
-        }
-        return true;
-      });
+    if (groupFilter) {
+      return match.group === groupFilter;
+    }
+    return true;
+  });
 </script>
 
 <div class="min-w-fit">
   {#if !data.matches || data.matches.length === 0}
     <p>Jotain meni pieleen...</p>
   {:else}
-  <!-- <div class="flex flex-row justify-end mx-4 form-control w-full py-4">
+    <!-- <div class="flex flex-row justify-end mx-4 form-control w-full py-4">
     <select class="select select-bordered w-64" bind:value={groupFilter}>
       <option value="">Kaikki</option>
       {#each Array.from(uniqueGroups) as group}

@@ -78,13 +78,13 @@ export const groupByUser = (predictions: Prediction[]) => {
 };
 
 export const transformDataForChart = (groupedPredictions: any) => {
-  return Object.keys(groupedPredictions).map(userName => {
+  return Object.keys(groupedPredictions).map((userName) => {
     return {
       label: userName,
-      data: groupedPredictions[userName].map((prediction: { date: any; time: any; points: any; }) => ({
-        x: new Date(`${prediction.date}T${prediction.time}`),
-        y: prediction.points
-      }))
+      data: groupedPredictions[userName].map((prediction: { match: any; points: any }) => ({
+        x: new Date(`${prediction.match.date}T${prediction.match.time}:00`),
+        y: prediction.points,
+      })),
     };
   });
 };
@@ -97,13 +97,15 @@ export const addGroupStageDetailsPreds = (list: Prediction[]): Prediction[] => {
         groupStage: true,
         group: prediction.match.away.group,
       };
-    } else if (new Date(prediction.match.date) < new Date(PUBLIC_R16_ENDS)) {
+    }
+    if (new Date(prediction.match.date) < new Date(PUBLIC_R16_ENDS)) {
       return {
         ...prediction,
         groupStage: false,
         group: 'R16',
       };
-    } else if (new Date(prediction.match.date) < new Date(PUBLIC_QF_ENDS)) {
+    }
+    if (new Date(prediction.match.date) < new Date(PUBLIC_QF_ENDS)) {
       return {
         ...prediction,
         groupStage: false,

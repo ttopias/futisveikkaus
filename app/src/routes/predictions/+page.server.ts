@@ -71,7 +71,7 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
     query = query.not('match_id', 'in', `(${predictionsMade.join(',')})`);
   }
 
-  const sec_res = await query.order('date', { ascending: true });
+  const sec_res = await query;
 
   if (sec_res.error) {
     console.error('Error fetching predictable matches:', error);
