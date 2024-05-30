@@ -22,7 +22,9 @@
     />
   </div>
 
-  <div class="glass max-w-4xl w-full border-inherit shadow-lg rounded-xl m-4 py-4">
-    <UserPointsChart {chartData} />
-  </div>
+  {#if data?.chartData && data?.chartData.length > 0}
+    <div class="glass max-w-4xl w-full border-inherit shadow-lg rounded-xl m-4 py-4">
+      <UserPointsChart {chartData} />
+    </div>
+  {/if}
 </div>

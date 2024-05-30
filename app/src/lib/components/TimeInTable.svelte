@@ -3,8 +3,11 @@
   export let row: any;
   export let field: string;
   export let format: string;
+  export let col: any;
 </script>
 
-<div>
-  <Time timestamp={row[field]} {format} />
-</div>
+{#if col}
+  <div>
+    <Time timestamp={row[field]} {format} />
+  </div>
+{/if}

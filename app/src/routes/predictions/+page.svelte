@@ -4,6 +4,8 @@
   import { page } from '$app/stores';
   import type { ActionData, PageData } from './$types';
   import Time from 'svelte-time';
+  import TimeInTable from '$lib/components/TimeInTable.svelte';
+  import { PUBLIC_START_DATE } from '$env/static/public';
 
   export let data: PageData;
   export let form: ActionData;
@@ -69,8 +71,12 @@
               loading = true;
               return async ({ result, update }) => {
                 update();
-                console.log(result);
                 loading = false;
+                if (result.status === 200) {
+                  predictableMatches = predictableMatches.filter(
+                    (m) => m.match_id !== match.match_id,
+                  );
+                }
               };
             }}
           >
@@ -82,11 +88,12 @@
                   {match?.group}
                 {/if}
               </div>
+
+              <input type="hidden" name="match_id" value={match.match_id} />
               <div class="card-title text-accent-content text-2xl justify-center">
                 <Time timestamp={match?.date} format="DD.MM.YYYY" />
                 {' '}{match?.time}
               </div>
-              <input type="hidden" name="match_id" value={match.match_id} />
 
               <div class="flex justify-between mt-4 px-4">
                 <div class="text-center font-bold w-1/2 py-4">
@@ -107,7 +114,7 @@
                       pattern="[0-9]*"
                       type="number"
                       min="0"
-                      value={form?.home_goals ?? 0}
+                      value={form?.home_goals}
                     />
                   </label>
                 </div>
@@ -130,7 +137,7 @@
                       pattern="[0-9]*"
                       type="number"
                       min="0"
-                      value={form?.away_goals ?? 0}
+                      value={form?.away_goals}
                     />
                   </label>
                 </div>
@@ -162,6 +169,15 @@
           {/if}
         </div>
       </div>
+
+      {#if new Date() < new Date(PUBLIC_START_DATE)}
+        <div class="text-center mt-4 px-4">
+          Alkusarjan otteluiden arvausaika päättyy <Time
+            timestamp={predictableMatches[0]?.predictable_until}
+            format="DD.MM.YYYY kello HH:mm"
+          />.
+        </div>
+      {/if}
     {/if}
 
     <!-- UPDATE PREDICTIONS -->

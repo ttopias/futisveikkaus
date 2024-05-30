@@ -95,7 +95,7 @@
         endLabel: {
           show: true,
           formatter: '{a}',
-          distance: -20
+          distance: -20,
         },
         emphasis: {
           focus: 'series',
@@ -117,4 +117,4 @@
   });
 </script>
 
-  <div id="chart" class="w-full h-96 p-4" />
+<div id="chart" class="w-full h-96 p-4" />

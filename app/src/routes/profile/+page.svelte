@@ -23,9 +23,7 @@
       };
     }}
   >
-    <h1 class="text-2xl font-semibold text-center my-4 min-w-96">
-      Pisteet: {data?.user?.user_metadata?.points ?? '0'}
-    </h1>
+    <h1 class="text-2xl font-semibold text-center my-4 min-w-96">Käyttäjätiedot</h1>
     <div class="form-control">
       <div class="text-sm text-accent-content mt-2">Sähköposti</div>
       <label class="input input-bordered flex items-center gap-2">
@@ -47,7 +45,7 @@
           type="text"
           value={form?.email ?? data?.user?.user_metadata?.email ?? ''}
           placeholder="Sähköpostiosoite"
-          class="grow"
+          class="input grow text-xl"
           disabled
         />
       </label>
@@ -69,7 +67,7 @@
           name="first_name"
           value={form?.first_name ?? data?.user?.user_metadata?.first_name ?? ''}
           placeholder="Etunimi"
-          class="grow"
+          class="input grow text-xl"
         />
       </label>
     </div>

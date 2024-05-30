@@ -71,11 +71,11 @@
   <Trigger><button class="my-2 btn btn-primary rounded-btn">Add team</button></Trigger>
 </Modal>
 {#if !data?.teams || Object.keys(data?.teams).length === 0}
-<p>No teams found</p>
+  <p>No teams found</p>
 {:else}
-<div
-class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 text-primary-content"
->
+  <div
+    class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 text-primary-content"
+  >
     {#each Object.keys(data?.teams) as group}
       <div class="card w-96 glass card-bordered card-compact my-4 pt-4 shadow-xl">
         <div class="pt-1 card-title justify-center">Lohko {group}</div>
@@ -218,4 +218,4 @@ class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 text-
       </div>
     {/each}
   </div>
-  {/if}
+{/if}

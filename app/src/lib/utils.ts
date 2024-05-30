@@ -180,6 +180,7 @@ export const teamTableCols = [
   {
     key: 'country',
     title: 'MAA',
+    value: (v: any) => v,
     renderComponent: TeamInTable,
     sortable: false,
   },
@@ -226,16 +227,17 @@ export const matchTableCols = [
     key: 'group',
     title: 'LOHKO',
     value: (v: any) => v.group,
-    sortable: false,
+    sortable: true,
   },
   {
     key: 'date',
     title: 'PVM',
+    value: (v: any) => v,
     renderComponent: {
       component: TimeInTable,
       props: { field: 'date', format: 'DD-MM-YYYY' },
     },
-    sortable: false,
+    sortable: true,
   },
   {
     key: 'time',
@@ -267,6 +269,7 @@ export const matchTableCols = [
   {
     key: 'away',
     title: 'VIERAS',
+    value: (v: any) => v,
     renderComponent: {
       component: TeamInTable,
       props: { field: 'away', flagLeft: false },

@@ -18,7 +18,7 @@
       Kirjaudu sisään tai rekisteröidy nähdäksesi tämän sivun.
       <br />
       <p class="max-w-[700px] text-lg text-muted-foreground">
-        <a href="/auth" class="underline">Login or register</a>
+        <a href="/auth" class="underline">Kirjaudu sisään</a>
       </p>
       <br />
       <p class="max-w-[700px] text-lg text-muted-foreground">
