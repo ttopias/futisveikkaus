@@ -25,6 +25,7 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
     user_id,
     match:match_id (
       match_id,
+      predictable_until,
       date,
       time,
       home:home_id (team_id, country_code, name, group, win, draw, loss, gf, gaa),

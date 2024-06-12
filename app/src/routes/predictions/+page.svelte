@@ -4,7 +4,6 @@
   import { page } from '$app/stores';
   import type { ActionData, PageData } from './$types';
   import Time from 'svelte-time';
-  import TimeInTable from '$lib/components/TimeInTable.svelte';
   import { PUBLIC_START_DATE } from '$env/static/public';
 
   export let data: PageData;
@@ -63,96 +62,100 @@
         class="card h-full relative carousel carousel-center m-4 p-4 glass border-inherit shadow-lg rounded-xl"
       >
         {#each predictableMatches as match, index}
-          <form
-            class={`card-content carousel-item ${index === currentIndex ? 'block' : 'hidden'}`}
-            method="POST"
-            action="?/create"
-            use:enhance={() => {
-              loading = true;
-              return async ({ result, update }) => {
-                update();
-                loading = false;
-                if (result.status === 200) {
-                  predictableMatches = predictableMatches.filter(
-                    (m) => m.match_id !== match.match_id,
-                  );
-                }
-              };
-            }}
-          >
-            <div class="form-control">
-              <div class="card-title text-accent-content text-2xl justify-center">
-                {#if match?.groupStage}
-                  Lohko {match?.group}
-                {:else}
-                  {match?.group}
-                {/if}
-              </div>
-
-              <input type="hidden" name="match_id" value={match.match_id} />
-              <div class="card-title text-accent-content text-2xl justify-center">
-                <Time timestamp={match?.date} format="DD.MM.YYYY" />
-                {' '}{match?.time}
-              </div>
-
-              <div class="flex justify-between mt-4 px-4">
-                <div class="text-center font-bold w-1/2 py-4">
-                  <div class="flag-container">
-                    <img
-                      class="flag rounded-btn"
-                      src={`../flags/${match.home.country_code}.svg`}
-                      alt="{match.home.name} flag"
-                    />
-                  </div>
-                  <label class="block text-sm mt-5">
-                    {match.home.name}
-                    <input
-                      class="input input-bordered w-full"
-                      id="home_goals"
-                      name="home_goals"
-                      placeholder="Kotijoukkueen maalit"
-                      pattern="[0-9]*"
-                      type="number"
-                      min="0"
-                      value={form?.home_goals}
-                    />
-                  </label>
+          {#if new Date() <= new Date(match.predictable_until)}
+            <form
+              class={`card-content carousel-item ${index === currentIndex ? 'block' : 'hidden'}`}
+              method="POST"
+              action="?/create"
+              use:enhance={() => {
+                loading = true;
+                return async ({ result, update }) => {
+                  update();
+                  loading = false;
+                  if (result.status === 200) {
+                    predictableMatches = predictableMatches.filter(
+                      (m) => m.match_id !== match.match_id,
+                    );
+                  }
+                };
+              }}
+            >
+              <div class="form-control">
+                <div class="card-title text-accent-content text-2xl justify-center">
+                  {#if match?.groupStage}
+                    Lohko {match?.group}
+                  {:else}
+                    {match?.group}
+                  {/if}
                 </div>
 
-                <div class="text-center font-bold w-1/2 py-4">
-                  <div class="flag-container">
-                    <img
-                      class="flag rounded-btn"
-                      src={`../flags/${match.away.country_code}.svg`}
-                      alt="{match.away.name} flag"
-                    />
+                <input type="hidden" name="match_id" value={match.match_id} />
+                <div class="card-title text-accent-content text-2xl justify-center">
+                  <Time timestamp={match?.date} format="DD.MM.YYYY" />
+                  {' '}{match?.time}
+                </div>
+
+                <div class="flex justify-between mt-4 px-4">
+                  <div class="text-center font-bold w-1/2 py-4">
+                    <div class="flag-container">
+                      <img
+                        class="flag rounded-btn"
+                        src={`../flags/${match.home.country_code}.svg`}
+                        alt="{match.home.name} flag"
+                      />
+                    </div>
+                    <label class="block text-sm mt-5">
+                      {match.home.name}
+                      <input
+                        class="input input-bordered w-full"
+                        id="home_goals"
+                        name="home_goals"
+                        placeholder="Kotijoukkueen maalit"
+                        pattern="[0-9]*"
+                        type="number"
+                        min="0"
+                        value={form?.home_goals}
+                      />
+                    </label>
                   </div>
-                  <label class="block text-sm mt-5">
-                    {match.away.name}
-                    <input
-                      class="input input-bordered w-full"
-                      id="away_goals"
-                      name="away_goals"
-                      placeholder="Vierasjoukkueen maalit"
-                      pattern="[0-9]*"
-                      type="number"
-                      min="0"
-                      value={form?.away_goals}
-                    />
-                  </label>
+
+                  <div class="text-center font-bold w-1/2 py-4">
+                    <div class="flag-container">
+                      <img
+                        class="flag rounded-btn"
+                        src={`../flags/${match.away.country_code}.svg`}
+                        alt="{match.away.name} flag"
+                      />
+                    </div>
+                    <label class="block text-sm mt-5">
+                      {match.away.name}
+                      <input
+                        class="input input-bordered w-full"
+                        id="away_goals"
+                        name="away_goals"
+                        placeholder="Vierasjoukkueen maalit"
+                        pattern="[0-9]*"
+                        type="number"
+                        min="0"
+                        value={form?.away_goals}
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                <div class="text-center mt-4 px-4">
+                  <button class="btn btn-primary w-full" class:loading type="submit"
+                    >TALLENNA</button
+                  >
                 </div>
               </div>
-
-              <div class="text-center mt-4 px-4">
-                <button class="btn btn-primary w-full" class:loading type="submit">TALLENNA</button>
-              </div>
-            </div>
-            {#if form?.error}
-              <div class="text-center mt-4 px-4">
-                <div class="btn btn-error w-full">{form.error.message}</div>
-              </div>
-            {/if}
-          </form>
+              {#if form?.error}
+                <div class="text-center mt-4 px-4">
+                  <div class="btn btn-error w-full">{form.error.message}</div>
+                </div>
+              {/if}
+            </form>
+          {/if}
         {/each}
         <div
           class="absolute flex justify-between transform -translate-y-4/5 left-5 right-5 top-4/5"
@@ -288,10 +291,21 @@
                     };
                   }}
                 >
-                  <button class="w-full btn btn-error" type="submit">POISTA</button>
+                  <button
+                    class="w-full btn btn-error"
+                    type="submit"
+                    disabled={new Date(prediction.match.predictable_until) <= new Date()}
+                    >POISTA</button
+                  >
                   <input type="hidden" name="guess_id" value={prediction.guess_id} />
                 </form>
-                <button class="w-1/3 btn btn-primary" class:loading type="submit">TALLENNA</button>
+                <button
+                  class="w-1/3 btn btn-primary"
+                  class:loading
+                  type="submit"
+                  disabled={new Date(prediction.match.predictable_until) <= new Date()}
+                  >TALLENNA</button
+                >
               </div>
             </div>
             {#if form?.error}
