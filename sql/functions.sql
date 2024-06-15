@@ -37,6 +37,7 @@ DECLARE
 BEGIN
     FOR guess IN SELECT * FROM guesses WHERE match_id = NEW.match_id LOOP
         p := 0;
+        
         IF NEW.finished = FALSE THEN
             UPDATE guesses 
             SET 
@@ -44,41 +45,45 @@ BEGIN
                 points_calculated = FALSE
             WHERE guess_id = guess.guess_id;
         ELSE
-            -- Correct result e.g. guess: 4-4, result: 4-4 OR guess: 0-2, result: 0-2
-            IF (guess.home_goals = guess.away_goals AND NEW.home_goals = NEW.away_goals) THEN
-                p := p + 4;
-            END IF;
+            IF (guess.home_goals = NEW.home_goals AND guess.away_goals = NEW.away_goals) THEN
+                p := p + 6;
+            ELSE
+                -- Correct draw prediction
+                IF (guess.home_goals = guess.away_goals AND NEW.home_goals = NEW.away_goals) THEN
+                    p := p + 4;
+                END IF;
 
-            -- Correct winner e.g. guess: 2-1, result: 3-2 OR guess: 0-1, result: 1-5
-            IF (guess.home_goals > guess.away_goals AND NEW.home_goals > NEW.away_goals) OR 
-               (guess.home_goals < guess.away_goals AND NEW.home_goals < NEW.away_goals) THEN
-                p := p + 3;
-            END IF;
+                -- Correct winner
+                IF (guess.home_goals > guess.away_goals AND NEW.home_goals > NEW.away_goals) OR 
+                   (guess.home_goals < guess.away_goals AND NEW.home_goals < NEW.away_goals) THEN
+                    p := p + 3;
+                END IF;
 
-            -- Guess contains correct number of goals for home team
-            IF (guess.home_goals = NEW.home_goals) THEN
-                p := p + 1;
-            END IF;
+                -- Correct number of goals for home team
+                IF (guess.home_goals = NEW.home_goals) THEN
+                    p := p + 1;
+                END IF;
 
-            -- Guess contains correct number of goals for away team
-            IF (guess.away_goals = NEW.away_goals) THEN
-                p := p + 1;
-            END IF;
+                -- Correct number of goals for away team
+                IF (guess.away_goals = NEW.away_goals) THEN
+                    p := p + 1;
+                END IF;
 
-            -- The result is not a draw, but the guess is
-            IF (guess.home_goals = guess.away_goals AND NEW.home_goals != NEW.away_goals) THEN
-                p := p - 2;
-            END IF;
+                -- Draw guessed, but not a draw
+                IF (guess.home_goals = guess.away_goals AND NEW.home_goals != NEW.away_goals) THEN
+                    p := p - 2;
+                END IF;
 
-            -- The result is a draw, but the guess is not
-            IF (guess.home_goals != guess.away_goals AND NEW.home_goals = NEW.away_goals) THEN
-                p := p - 2;
-            END IF;
+                -- Not a draw guessed, but match is a draw
+                IF (guess.home_goals != guess.away_goals AND NEW.home_goals = NEW.away_goals) THEN
+                    p := p - 2;
+                END IF;
 
-            -- The opposite team won the match
-            IF (guess.home_goals > guess.away_goals AND NEW.home_goals < NEW.away_goals) OR 
-               (guess.home_goals < guess.away_goals AND NEW.home_goals > NEW.away_goals) THEN
-                p := p - 4;
+                -- Incorrect winner
+                IF (guess.home_goals > guess.away_goals AND NEW.home_goals < NEW.away_goals) OR 
+                   (guess.home_goals < guess.away_goals AND NEW.home_goals > NEW.away_goals) THEN
+                    p := p - 4;
+                END IF;
             END IF;
 
             UPDATE guesses 
