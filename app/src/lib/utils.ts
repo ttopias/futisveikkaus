@@ -78,15 +78,32 @@ export const groupByUser = (predictions: Prediction[]) => {
 };
 
 export const transformDataForChart = (groupedPredictions: any) => {
-  return Object.keys(groupedPredictions).map((userName) => {
+  // Calculate the cumulative points for each user
+  const usersData = Object.keys(groupedPredictions).map((userName) => {
+    let cumulativePoints = 0;
+
+    const data = groupedPredictions[userName].map((prediction: { match: any; points: any }) => {
+      cumulativePoints += prediction.points;
+
+      return {
+        x: new Date(`${prediction.match.date}T${prediction.match.time}:00`),
+        y: cumulativePoints,
+      };
+    });
+
     return {
       label: userName,
-      data: groupedPredictions[userName].map((prediction: { match: any; points: any }) => ({
-        x: new Date(`${prediction.match.date}T${prediction.match.time}:00`),
-        y: prediction.points,
-      })),
+      data,
+      latestPoints: cumulativePoints,
     };
   });
+
+  usersData.sort((a, b) => b.latestPoints - a.latestPoints);
+
+  return usersData.map(({ label, data }) => ({
+    label,
+    data,
+  }));
 };
 
 export const addGroupStageDetailsPreds = (list: Prediction[]): Prediction[] => {
