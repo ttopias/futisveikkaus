@@ -53,35 +53,37 @@
 </script>
 
 <div class="m-4 p-4 items-center text-center pt-8">
-  <div class="mb-8 p-4">
-    <div class="text-4xl font-bold">KISOJEN ALKUUN</div>
-    <div class="justify-center grid grid-flow-col gap-5 text-center auto-cols-max pt-4">
-      <div class="flex flex-col">
-        <span class="countdown font-mono text-5xl">
-          <span style={`--value:${days};`}></span>
-        </span>
-        päivää
-      </div>
-      <div class="flex flex-col">
-        <span class="countdown font-mono text-5xl">
-          <span style={`--value:${hours};`}></span>
-        </span>
-        tuntia
-      </div>
-      <div class="flex flex-col">
-        <span class="countdown font-mono text-5xl">
-          <span style={`--value:${minutes};`}></span>
-        </span>
-        minuuttia
-      </div>
-      <div class="flex flex-col">
-        <span class="countdown font-mono text-5xl">
-          <span style={`--value:${seconds};`}></span>
-        </span>
-        sekuntia
+  {#if new Date(PUBLIC_START_DATE) > new Date()}
+    <div class="mb-8 p-4">
+      <div class="text-4xl font-bold">KISOJEN ALKUUN</div>
+      <div class="justify-center grid grid-flow-col gap-5 text-center auto-cols-max pt-4">
+        <div class="flex flex-col">
+          <span class="countdown font-mono text-5xl">
+            <span style={`--value:${days};`}></span>
+          </span>
+          päivää
+        </div>
+        <div class="flex flex-col">
+          <span class="countdown font-mono text-5xl">
+            <span style={`--value:${hours};`}></span>
+          </span>
+          tuntia
+        </div>
+        <div class="flex flex-col">
+          <span class="countdown font-mono text-5xl">
+            <span style={`--value:${minutes};`}></span>
+          </span>
+          minuuttia
+        </div>
+        <div class="flex flex-col">
+          <span class="countdown font-mono text-5xl">
+            <span style={`--value:${seconds};`}></span>
+          </span>
+          sekuntia
+        </div>
       </div>
     </div>
-  </div>
+  {/if}
 
   <div class="card glass max-w-xl m-4 p-4 border-inherit shadow-lg rounded-xl">
     <SvelteTable

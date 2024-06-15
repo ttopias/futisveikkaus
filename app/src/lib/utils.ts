@@ -128,6 +128,8 @@ export const addGroupStageDetailsPreds = (list: Prediction[]): Prediction[] => {
 };
 
 export const addGroupStageDetails = (list: Match[]): Match[] => {
+  if (!list || list.length === 0) return [];
+
   return list.map((match: Match) => {
     if (new Date(match.date) < new Date(PUBLIC_GROUP_STAGE_ENDS)) {
       return {
