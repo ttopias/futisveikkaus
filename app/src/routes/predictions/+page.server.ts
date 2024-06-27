@@ -88,6 +88,7 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
     });
 
   predictableMatches = sortByDateTime(addGroupStageDetails(predictableMatches));
+  predictions = predictions.filter((p) => p.match.finished === false);
   predictions = sortPredsByDateTime(addGroupStageDetailsPreds(predictions));
 
   return { user, predictions, predictableMatches };
