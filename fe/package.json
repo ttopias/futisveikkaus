@@ -1,51 +1,48 @@
 {
-  "name": "app",
-  "version": "0.0.1",
+  "name": "futisveikkaus-frontend",
   "private": true,
+  "version": "0.0.0",
+  "type": "module",
   "scripts": {
-    "dev": "vite dev",
-    "build": "vite build",
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
     "preview": "vite preview",
-    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-    "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
-    "lint": "prettier --check . && eslint .",
-    "format": "prettier --plugin-search-dir . --write ."
+    "lint:fix": "eslint . --fix"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "src/**/*.{js,jsx,ts,tsx,json,css,scss,md}": [
+      "prettier --write"
+    ]
+  },
+  "dependencies": {
+    "husky": "^9.1.5",
+    "i18next": "^23.14.0",
+    "i18next-browser-languagedetector": "^8.0.0",
+    "lint-staged": "^15.2.9",
+    "prettier": "^3.3.3",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-i18next": "^15.0.1",
+    "react-router-dom": "^6.26.1"
   },
   "devDependencies": {
-    "@sveltejs/adapter-auto": "^3.0.0",
-    "@sveltejs/kit": "^2.0.0",
-    "@sveltejs/vite-plugin-svelte": "^3.0.0",
-    "@types/eslint": "^8.56.0",
-    "@typescript-eslint/eslint-plugin": "^7.0.0",
-    "@typescript-eslint/parser": "^7.0.0",
-    "autoprefixer": "^10.4.19",
-    "eslint": "^8.57.0",
-    "eslint-config-prettier": "^9.1.0",
-    "eslint-plugin-svelte": "^2.38.0",
-    "postcss": "^8.4.38",
-    "prettier": "^3.2.5",
-    "prettier-plugin-svelte": "^3.2.3",
-    "svelte": "^4.2.7",
-    "svelte-check": "^3.6.0",
-    "svelte-feather-icons": "^4.1.0",
-    "tailwind-scrollbar": "^3.1.0",
-    "tailwindcss": "^3.4.3",
-    "tslib": "^2.4.1",
-    "typescript": "^5.0.0",
-    "vite": "^5.2.10"
-  },
-  "type": "module",
-  "dependencies": {
-    "@supabase/ssr": "^0.3.0",
-    "@supabase/supabase-js": "^2.42.5",
-    "@tailwindcss/typography": "^0.5.13",
-    "@vercel/analytics": "^1.2.2",
-    "@vercel/speed-insights": "^1.0.10",
-    "daisyui": "^4.10.2",
-    "echarts": "^5.5.0",
-    "svelte-loading-spinners": "^0.3.6",
-    "svelte-table": "^0.6.3",
-    "svelte-time": "^0.9.0",
-    "theme-change": "^2.5.0"
+    "@eslint/js": "^9.9.0",
+    "@types/eslint__js": "^8.42.3",
+    "@types/node": "^22.5.0",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react-swc": "^3.5.0",
+    "eslint": "^9.9.0",
+    "globals": "^15.9.0",
+    "tailwindcss": "^3.4.10",
+    "typescript": "^4.9.5",
+    "typescript-eslint": "^8.2.0",
+    "vite": "^5.4.1"
   }
 }

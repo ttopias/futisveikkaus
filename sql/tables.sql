@@ -2,7 +2,7 @@ CREATE TABLE IF NOT EXISTS matches (
     match_id SERIAL UNIQUE PRIMARY KEY,
     date TEXT NOT NULL,
     time TEXT NOT NULL,
-    stage TEXT NOT NULL,
+    stage_id INT NOT NULL,
     home_id INT NOT NULL,
     away_id INT NOT NULL,
     home_goals INT DEFAULT 0,
@@ -68,9 +68,18 @@ CREATE TABLE IF NOT EXISTS users (
   role TEXT default 'user'
 );
 
+CREATE TABLE IF NOT EXISTS stages (
+    stage_id SERIAL UNIQUE PRIMARY KEY,
+    name TEXT NOT NULL,
+    end_date TIMESTAMP,
+    created_at TIMESTAMP default current_timestamp,
+    updated_at TIMESTAMP default current_timestamp
+);
+
 -- DATABASE CONSTRAINTS AND INDEXES
 ALTER TABLE matches ADD CONSTRAINT matches_home_fk FOREIGN KEY (home_id) REFERENCES teams(team_id);
 ALTER TABLE matches ADD CONSTRAINT matches_away_fk FOREIGN KEY (away_id) REFERENCES teams(team_id);
+ALTER TABLE matches ADD CONSTRAINT matches_stage_fk FOREIGN KEY (stage) REFERENCES stages(stage_id);
 ALTER TABLE guesses ADD CONSTRAINT guesses_fk1 FOREIGN KEY (match_id) REFERENCES matches(match_id) ON DELETE CASCADE;
 ALTER TABLE guesses ADD CONSTRAINT guesses_fk2 FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE;
 ALTER TABLE dashboard ADD CONSTRAINT dashboard_fk1 FOREIGN KEY (group_id) REFERENCES groups(group_id) ON DELETE CASCADE;

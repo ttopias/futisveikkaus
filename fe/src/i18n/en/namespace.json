@@ -1,0 +1,23 @@
+{
+    "general": {
+        "title": "Football app"
+    },
+    "navbar": {
+        "home": "Home",
+        "matches": "Matches",
+        "teams": "Teams",
+        "predictions": "Predictions",
+        "standings": "Standings",
+        "profile": "Profile",
+        "logout": "Log out",
+        "login": "Login"
+    },
+    "index": {
+        "days": "Days",
+        "hours": "Hours",
+        "minutes": "Minutes",
+        "seconds": "Seconds",
+        "rule": "Rule",
+        "points": "Points"
+    }
+}

@@ -11,6 +11,21 @@ import (
 	"github.com/ttopias/futisveikkaus/be/models"
 )
 
+func CORS(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Allow requests from any origin (adjust this for production)
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+		if r.Method == http.MethodOptions {
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
 func main() {
 	db := models.InitDB()
 	defer db.Close()
@@ -59,5 +74,5 @@ func main() {
 	adminMux.Handle("/", protectedMux)
 	mux.Handle("/admin/", middleware.AdminMiddleware(adminMux))
 
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", os.Getenv("PORT")), mux))
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", os.Getenv("PORT")), CORS(mux)))
 }

@@ -30,5 +30,17 @@ services:
       - postgres
     restart: always
 
+  frontend:
+    container_name: frontend_container
+    build:
+      context: ./fe
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./fe:/app
+    restart: always
 volumes:
   postgres:
