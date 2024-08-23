@@ -14,7 +14,7 @@ function MobileMenu({ isOpen, toggleMenu, user, isAdmin }: MobileMenuProps) {
     if (!isOpen) return null;
 
     return (
-        <div className="bg-accent text-accent-content sm:hidden mt-2 rounded-btn" id="mobile-menu">
+        <div id="mobile-menu">
             <div className="px-2 pt-2 pb-3 space-y-1 mx-2">
                 <MenuLink href="/" label={t('navbar.home')} currentPath="/" onClick={toggleMenu} />
                 <div className="divider divider-neutral opacity-25 py-4" />

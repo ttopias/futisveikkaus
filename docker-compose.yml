@@ -15,32 +15,32 @@ services:
       - ./sql:/sql
     restart: always
 
-  backend:
-    container_name: backend_container
-    build:
-      context: ./be
-      dockerfile: Dockerfile
-    env_file:
-      - .env
-    ports:
-      - "8000:8000"
-    volumes:
-      - ./be:/app
-    depends_on:
-      - postgres
-    restart: always
+  # backend:
+  #   container_name: backend_container
+  #   build:
+  #     context: ./be
+  #     dockerfile: Dockerfile
+  #   env_file:
+  #     - .env
+  #   ports:
+  #     - "8000:8000"
+  #   volumes:
+  #     - ./be:/app
+  #   depends_on:
+  #     - postgres
+  #   restart: always
 
-  frontend:
-    container_name: frontend_container
-    build:
-      context: ./fe
-      dockerfile: Dockerfile
-    env_file:
-      - .env
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./fe:/app
-    restart: always
+  # frontend:
+  #   container_name: frontend_container
+  #   build:
+  #     context: ./fe
+  #     dockerfile: Dockerfile
+  #   env_file:
+  #     - .env
+  #   ports:
+  #     - "3000:3000"
+  #   volumes:
+  #     - ./fe:/app
+  #   restart: always
 volumes:
   postgres:

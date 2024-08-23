@@ -13,7 +13,6 @@ import (
 
 func CORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Allow requests from any origin (adjust this for production)
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
@@ -74,5 +73,8 @@ func main() {
 	adminMux.Handle("/", protectedMux)
 	mux.Handle("/admin/", middleware.AdminMiddleware(adminMux))
 
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", os.Getenv("PORT")), CORS(mux)))
+	loggedMux := middleware.LoggingMiddleware(mux)
+	corsMux := CORS(loggedMux)
+
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", os.Getenv("PORT")), corsMux))
 }

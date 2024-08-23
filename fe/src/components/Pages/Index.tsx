@@ -8,27 +8,27 @@ interface Rule {
     points: string;
 }
 
-const rules: Rule[] = [
-    { rule: 'Ottelun lopputulos täysin oikein', points: '+6' },
-    {
-        rule: 'Veikkaat tasapeliä ja ottelu päättyy tasan. Yksi lisäpiste, vaikka tulos ei ole oikea',
-        points: '+4',
-    },
-    { rule: 'Ottelun voittaja oikein', points: '+3' },
-    { rule: 'Joukkueen maalimäärä oikein', points: '+1' },
-    {
-        rule: 'Veikkaat tasapeliä, mutta ottelu ei pääty tasapeliin',
-        points: '-2',
-    },
-    {
-        rule: 'Veikkaat jommankumman voittoa, mutta ottelu päättyy tasapeliin',
-        points: '-2',
-    },
-    { rule: 'Väärä voittaja', points: '-4' },
-];
-
-export function Index() {
+function Index() {
     const { t } = useTranslation();
+
+    const rules: Rule[] = [
+        { rule: `${t('index.rule_1')}`, points: '+6' },
+        {
+            rule: `${t('index.rule_2')}`,
+            points: '+4',
+        },
+        { rule: `${t('index.rule_3')}`, points: '+3' },
+        { rule: `${t('index.rule_4')}`, points: '+1' },
+        {
+            rule: `${t('index.rule_5')}`,
+            points: '-2',
+        },
+        {
+            rule: `${t('index.rule_6')}`,
+            points: '-2',
+        },
+        { rule: `${t('index.rule_7')}`, points: '-4' },
+    ];
 
     const [timeLeft, setTimeLeft] = useState<number>(
         new Date(PUBLIC_START_DATE).getTime() - new Date().getTime(),
@@ -111,7 +111,7 @@ export function Index() {
             )}
 
             <div className="card glass max-w-xl m-4 p-4 border-inherit shadow-lg rounded-xl">
-                <div className="text-4xl font-bold">Säännöt</div>
+                <div className="text-4xl font-bold">{t('index.rules')}</div>
                 <table className="table-auto w-full">
                     <thead>
                         <tr>
@@ -145,3 +145,5 @@ export function Index() {
         </div>
     );
 }
+
+export default Index;

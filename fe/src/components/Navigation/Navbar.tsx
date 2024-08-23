@@ -18,7 +18,7 @@ function Navbar({ user, logo }: NavbarProps) {
 
     return (
         <nav>
-            <div>
+            <div className='container mx-auto sm:hidden'>
                 <div>
                     <div>
                         <a href="/">

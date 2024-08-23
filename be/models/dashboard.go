@@ -5,11 +5,11 @@ import (
 )
 
 type Dashboard struct {
-	GroupID     int `json:"group_id"`
-	UserID      int `json:"user_id"`
-	FirstName   int `json:"first_name"`
-	LastName    int `json:"last_name"`
-	TotalPoints int `json:"total_points"`
+	GroupID     int    `json:"group_id"`
+	UserID      int    `json:"user_id"`
+	FirstName   string `json:"first_name"`
+	LastName    string `json:"last_name"`
+	TotalPoints int    `json:"total_points"`
 }
 
 func GetDashboard(db *sql.DB, groupID int) ([]Dashboard, error) {

@@ -13,11 +13,19 @@
         "login": "Login"
     },
     "index": {
+        "rules": "Rules",
         "days": "Days",
         "hours": "Hours",
         "minutes": "Minutes",
         "seconds": "Seconds",
         "rule": "Rule",
-        "points": "Points"
+        "points": "Points",
+        "rule_1": "Correct prediction",
+        "rule_2": "Prediction was draw with incorrect score",
+        "rule_3": "The match winner is correct but the score is not",
+        "rule_4": "Correct score for one of the teams",
+        "rule_5": "Your prediction is draw but the match result is not",
+        "rule_6": "You have guessed the winner of the match, but the score is draw",
+        "rule_7": "You guessed the winner of the match wrong"
     }
 }
