@@ -103,9 +103,9 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION update_user_points_aggregate()
 RETURNS TRIGGER AS $$
 BEGIN
-    UPDATE auth.users
-    SET raw_user_meta_data = jsonb_set(raw_user_meta_data, '{points}', (SELECT COALESCE(SUM(points), 0)::text FROM guesses WHERE user_id = NEW.user_id)::jsonb)
-    WHERE id = NEW.user_id;
+    UPDATE users
+    SET points = (SELECT COALESCE(SUM(points), 0)::int FROM guesses WHERE user_id = NEW.user_id)
+    WHERE user_id = NEW.user_id;
 
     RETURN NEW;
 END;
@@ -124,7 +124,7 @@ BEGIN
             SUM(home_goals) AS goals_for,
             SUM(away_goals) AS goals_against
         FROM matches
-        WHERE finished = TRUE AND home_id = NEW.home_id
+        WHERE finished = TRUE AND home_id = NEW.home_id AND stage = 'group'
         GROUP BY home_id
     ), updated_away_stats AS (
         SELECT 
@@ -135,7 +135,7 @@ BEGIN
             SUM(away_goals) AS goals_for,
             SUM(home_goals) AS goals_against
         FROM matches
-        WHERE finished = TRUE AND away_id = NEW.away_id
+        WHERE finished = TRUE AND away_id = NEW.away_id AND stage = 'group'
         GROUP BY away_id
     ), combined_stats AS (
         SELECT 
@@ -171,43 +171,32 @@ CREATE OR REPLACE FUNCTION update_dashboard()
 RETURNS TRIGGER AS $$
 DECLARE
     user_first_name text;
+    user_last_name text;
 BEGIN
-    SELECT raw_user_meta_data->>'first_name' INTO user_first_name
-    FROM auth.users
-    WHERE id = COALESCE(NEW.user_id, OLD.user_id);
+    SELECT 
+        first_name INTO user_first_name
+    FROM users
+    WHERE user_id = COALESCE(NEW.user_id, OLD.user_id);
 
-    INSERT INTO dashboard (user_id, total_points, first_name)
+    SELECT 
+        last_name INTO user_last_name
+    FROM users
+    WHERE user_id = COALESCE(NEW.user_id, OLD.user_id);
+
+    INSERT INTO dashboard (group_id, user_id, total_points, first_name, last_name)
     VALUES (
+        COALESCE(NEW.group_id, OLD.group_id), 
         COALESCE(NEW.user_id, OLD.user_id), 
         (SELECT COALESCE(SUM(g.points), 0) FROM guesses g WHERE g.user_id = COALESCE(NEW.user_id, OLD.user_id)),
-        user_first_name
+        user_first_name,
+        user_last_name
     )
     ON CONFLICT (user_id) DO UPDATE
     SET 
+        group_id = EXCLUDED.group_id,
         total_points = EXCLUDED.total_points,
-        first_name = EXCLUDED.first_name;
-
+        first_name = EXCLUDED.first_name,
+        last_name = EXCLUDED.last_name;
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
-create function public.handle_new_user()
-returns trigger as $$
-begin
-  insert into public.profiles (id, first_name)
-  values (new.id, new.raw_user_meta_data->>'first_name');
-  return new;
-end;
-$$ language plpgsql security definer;
-
-alter table profiles
-  enable row level security;
-
-create policy "Public profiles are viewable by everyone." on profiles
-  for select using (true);
-
-create policy "Users can insert their own profile." on profiles
-  for insert with check ((select auth.uid()) = id);
-
-create policy "Users can update own profile." on profiles
-  for update using ((select auth.uid()) = id);
+$$ LANGUAGE plpgsql;

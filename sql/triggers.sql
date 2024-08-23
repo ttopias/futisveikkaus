@@ -1,9 +1,9 @@
 -- DATABASE TRIGGERS
 
 -- Trigger to handle user deletion
-DROP TRIGGER IF EXISTS trigger_cleanup_user_data ON auth.users;
+DROP TRIGGER IF EXISTS trigger_cleanup_user_data ON users;
 CREATE TRIGGER trigger_cleanup_user_data
-BEFORE DELETE ON auth.users
+BEFORE DELETE ON users
 FOR EACH ROW
 EXECUTE FUNCTION cleanup_user_data();
 
@@ -68,6 +68,9 @@ FOR EACH ROW
 WHEN (OLD.points_calculated = TRUE)
 EXECUTE FUNCTION update_user_points_aggregate();
 
-create trigger on_auth_user_created
-  after insert on auth.users
-  for each row execute procedure public.handle_new_user();
+-- Trigger to update dashboard after a user is created or deleted
+DROP TRIGGER IF EXISTS after_user_insert ON users;
+CREATE TRIGGER after_user_insert
+AFTER INSERT OR DELETE ON users
+FOR EACH ROW
+EXECUTE FUNCTION update_dashboard();
