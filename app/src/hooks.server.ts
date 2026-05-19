@@ -1,6 +1,7 @@
 import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_PUBLISHABLE_KEY } from '$env/static/public';
 import { createServerClient } from '@supabase/ssr';
 import type { Handle } from '@sveltejs/kit';
+import { fetchVisibleMatchStage } from '$lib/tournament-stage';
 
 export const handle: Handle = async ({ event, resolve }) => {
   event.locals.supabase = createServerClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_PUBLISHABLE_KEY, {
@@ -16,23 +17,33 @@ export const handle: Handle = async ({ event, resolve }) => {
     },
   });
 
+  let sessionPromise: ReturnType<App.Locals['safeGetSession']> | null = null;
   event.locals.safeGetSession = async () => {
-    const {
-      data: { session },
-    } = await event.locals.supabase.auth.getSession();
-    if (!session) {
-      return { session: null, user: null };
-    }
+    sessionPromise ??= (async () => {
+      const {
+        data: { session },
+      } = await event.locals.supabase.auth.getSession();
+      if (!session) {
+        return { session: null, user: null };
+      }
 
-    const {
-      data: { user },
-      error,
-    } = await event.locals.supabase.auth.getUser();
-    if (error) {
-      return { session: null, user: null };
-    }
+      const {
+        data: { user },
+        error,
+      } = await event.locals.supabase.auth.getUser();
+      if (error) {
+        return { session: null, user: null };
+      }
 
-    return { session, user };
+      return { session, user };
+    })();
+    return sessionPromise;
+  };
+
+  let visibleStagePromise: ReturnType<App.Locals['getVisibleMatchStage']> | null = null;
+  event.locals.getVisibleMatchStage = () => {
+    visibleStagePromise ??= fetchVisibleMatchStage(event.locals.supabase);
+    return visibleStagePromise;
   };
 
   return resolve(event, {

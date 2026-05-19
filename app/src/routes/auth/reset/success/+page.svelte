@@ -1,13 +1,20 @@
-<section class="container grid items-center gap-6">
-  <div class="flex max-w-[980px] flex-col items-start gap-2">
-    <h1 class="text-3xl font-extrabold leading-tight tracking-tighter md:text-4xl">
-      Lähetimme sähköpostiisi linkin salasanan vaihtamiseksi.
-    </h1>
-    <p class="max-w-[700px] text-lg text-muted-foreground">
-      Tarkista sähköpostisi roskapostikansio, jos viesti ei näy muutamassa minuutissa. <a
-        href="/"
-        class="link">Palaa etusivulle</a
-      >
-    </p>
-  </div>
-</section>
+<script lang="ts">
+  import * as Card from '$lib/components/ui/card';
+  import { Button } from '$lib/components/ui/button';
+</script>
+
+<div class="flex w-full justify-center px-4 py-8">
+  <Card.Root class="w-full max-w-lg shadow-md">
+    <Card.Header>
+      <Card.Title>Lähetimme sähköpostiisi linkin</Card.Title>
+      <p class="text-sm text-muted-foreground">
+        Tarkista roskaposti, jos viesti ei näy muutamassa minuutissa.
+      </p>
+    </Card.Header>
+    <Card.Footer>
+      <a href="/">
+        <Button variant="outline" type="button">Palaa etusivulle</Button>
+      </a>
+    </Card.Footer>
+  </Card.Root>
+</div>

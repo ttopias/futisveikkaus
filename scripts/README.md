@@ -103,3 +103,21 @@ node scripts/resolve-bracket.mjs --write --env app/.env.local
 ```
 
 The script calls `resolve_bracket_slots()` via `pg`; it does not duplicate resolution logic in Node.
+
+---
+
+## Smoke test users (`seed-smoke-users.mjs`)
+
+Creates or resets two Supabase auth users for manual/browser smoke tests:
+
+| Email | Role (`app_metadata.role`) |
+|-------|----------------------------|
+| `smoke-user@test.futis.local` | `user` |
+| `smoke-admin@test.futis.local` | `admin` |
+
+```bash
+node scripts/seed-smoke-users.mjs --env app/.env.local
+node scripts/seed-smoke-users.mjs --dry-run --env app/.env.local
+```
+
+Needs `PUBLIC_SUPABASE_URL` and `SUPABASE_SECRET_KEY`. Default passwords and full checklist: **`app/SMOKE_TEST.md`**.

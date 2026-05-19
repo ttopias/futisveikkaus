@@ -7,264 +7,278 @@
   import { isMatchPredictable } from '$lib/stages';
   import { matchParticipant } from '$lib/match-participants';
   import TeamFlag from '$lib/components/TeamFlag.svelte';
+  import { Button } from '$lib/components/ui/button';
+  import { Input } from '$lib/components/ui/input';
+  import { Label } from '$lib/components/ui/label';
+  import { Select } from '$lib/components/ui/select';
+  import { Alert } from '$lib/components/ui/alert';
+  import * as Card from '$lib/components/ui/card';
+  import * as Carousel from '$lib/components/ui/carousel';
+  import { onDestroy } from 'svelte';
+  import type { CarouselAPI } from '$lib/components/ui/carousel/context';
   import type { Prediction } from '$lib';
+  import Save from 'lucide-svelte/icons/save';
+  import Pencil from 'lucide-svelte/icons/pencil';
+  import ArrowLeft from 'lucide-svelte/icons/arrow-left';
+  import Trash2 from 'lucide-svelte/icons/trash-2';
+
   export let data: PageData;
   export let form: ActionData;
 
   let predictableMatches = data?.predictableMatches || [];
-  let currentIndex = 0;
-  let carouselLength = data?.predictableMatches.length;
   let groupFilter = '';
   let uniqueGroups = new Set(data?.predictions.map((p) => p.group));
   let matches: Prediction[] = [];
+  let loading = false;
+  let view = 'create';
+  let carouselApi: CarouselAPI | undefined;
+  let slideIndex = 0;
+  let detachCarousel: (() => void) | undefined;
 
-  function navigate(direction: number) {
-    currentIndex += direction;
-    if (currentIndex >= carouselLength) {
-      currentIndex = 0;
-    } else if (currentIndex < 0) {
-      currentIndex = carouselLength - 1;
+  $: slides = predictableMatches.filter((match) => isMatchPredictable(match));
+
+  $: if (carouselApi && slideIndex >= slides.length) {
+    carouselApi.scrollTo(Math.max(0, slides.length - 1), true);
+  }
+
+  $: {
+    detachCarousel?.();
+    detachCarousel = undefined;
+    if (carouselApi) {
+      const onSelect = () => {
+        slideIndex = carouselApi?.selectedScrollSnap() ?? 0;
+      };
+      carouselApi.on('select', onSelect);
+      carouselApi.on('reInit', onSelect);
+      onSelect();
+      detachCarousel = () => {
+        carouselApi?.off('select', onSelect);
+        carouselApi?.off('reInit', onSelect);
+      };
     }
   }
 
-  let view = 'create';
+  onDestroy(() => detachCarousel?.());
 
   $: {
-    if ($page.url.searchParams.has('create')) {
-      view = 'create';
-    }
-
+    if ($page.url.searchParams.has('create')) view = 'create';
     if ($page.url.searchParams.has('edit')) {
       view = 'edit';
       matches = data?.predictions.filter((prediction) => {
-        if (groupFilter) {
-          return prediction.group === groupFilter;
-        }
+        if (groupFilter) return prediction.group === groupFilter;
         return true;
       });
     }
   }
-
-  let loading = false;
 </script>
 
-<div in:fade class="pt-4">
+<div in:fade class="mx-auto w-full max-w-lg">
   {#if view == 'create'}
-    <div class="flex flex-row justify-between mx-4 form-control w-full py-4">
-      <div class="btn btn-primary">
-        <a href="?edit ">MUOKKAA ARVAUKSIA</a>
-      </div>
+    <div class="mb-4 flex justify-end">
+      <Button href="?edit" variant="outline" class="gap-2">
+        <Pencil class="size-4" />
+        Muokkaa arvauksia
+      </Button>
     </div>
 
-    <!-- CREATE PREDICTIONS -->
-    {#if !predictableMatches || predictableMatches.length === 0}
-      <div>Ei enää veikattavia otteluita.</div>
+    {#if !slides || slides.length === 0}
+      <p class="text-center text-muted-foreground">Ei enää veikattavia otteluita.</p>
     {:else}
-      <div
-        class="card h-full relative carousel carousel-center m-4 p-4 glass border-inherit shadow-lg rounded-xl"
-      >
-        {#each predictableMatches as match, index}
-          {#if isMatchPredictable(match)}
-            <form
-              class={`card-content carousel-item ${index === currentIndex ? 'block' : 'hidden'}`}
-              method="POST"
-              action="?/create"
-              use:enhance={() => {
-                loading = true;
-                return async ({ result, update }) => {
-                  update();
-                  loading = false;
-                  if (result.status === 200) {
-                    predictableMatches = predictableMatches.filter(
-                      (m) => m.match_id !== match.match_id,
-                    );
-                  }
-                };
-              }}
-            >
-              <div class="form-control">
-                <div class="card-title text-accent-content text-2xl justify-center">
-                  {#if match?.groupStage}
-                    Lohko {match?.group}
-                  {:else}
-                    {match?.group}
-                  {/if}
-                </div>
+      <Card.Root class="relative shadow-md">
+        <Carousel.Root bind:api={carouselApi} class="w-full">
+          <Carousel.Content>
+            {#each slides as match (match.match_id)}
+              <Carousel.Item>
+                <form
+                  method="POST"
+                  action="?/create"
+                  use:enhance={() => {
+                    loading = true;
+                    return async ({ result, update }) => {
+                      update();
+                      loading = false;
+                      if (result.status === 200) {
+                        predictableMatches = predictableMatches.filter(
+                          (m) => m.match_id !== match.match_id,
+                        );
+                      }
+                    };
+                  }}
+                >
+                  <Card.Header class="text-center">
+                    <Card.Title class="text-lg">
+                      {#if match?.groupStage}
+                        Lohko {match?.group}
+                      {:else}
+                        {match?.group}
+                      {/if}
+                    </Card.Title>
+                    <p class="text-sm text-muted-foreground">
+                      <Time timestamp={match?.starts_at} format="DD.MM.YYYY HH:mm" />
+                    </p>
+                  </Card.Header>
 
-                <input type="hidden" name="match_id" value={match.match_id} />
-                <div class="card-title text-accent-content text-2xl justify-center">
-                  <Time timestamp={match?.starts_at} format="DD.MM.YYYY HH:mm" />
-                </div>
+                  <Card.Content class="space-y-4">
+                    <input type="hidden" name="match_id" value={match.match_id} />
 
-                <div class="flex justify-between mt-4 px-4">
-                  <div class="text-center font-bold w-1/2 py-4">
-                    <div class="flag-container">
-                      <TeamFlag
-                        countryCode={matchParticipant(match, 'home').country_code}
-                        name={matchParticipant(match, 'home').name}
-                        class="flag rounded-btn object-cover"
-                      />
+                    <div class="grid grid-cols-2 gap-4">
+                      <div class="flex flex-col items-center gap-3 text-center">
+                        <TeamFlag
+                          countryCode={matchParticipant(match, 'home').country_code}
+                          name={matchParticipant(match, 'home').name}
+                          class="h-16 w-auto max-w-full rounded-md"
+                        />
+                        <Label class="w-full text-xs" for="home_goals-{match.match_id}">
+                          {matchParticipant(match, 'home').name}
+                        </Label>
+                        <Input
+                          id="home_goals-{match.match_id}"
+                          name="home_goals"
+                          placeholder="0"
+                          pattern="[0-9]*"
+                          type="number"
+                          min="0"
+                          class="text-center"
+                          value={form?.home_goals ?? ''}
+                        />
+                      </div>
+
+                      <div class="flex flex-col items-center gap-3 text-center">
+                        <TeamFlag
+                          countryCode={matchParticipant(match, 'away').country_code}
+                          name={matchParticipant(match, 'away').name}
+                          class="h-16 w-auto max-w-full rounded-md"
+                        />
+                        <Label class="w-full text-xs" for="away_goals-{match.match_id}">
+                          {matchParticipant(match, 'away').name}
+                        </Label>
+                        <Input
+                          id="away_goals-{match.match_id}"
+                          name="away_goals"
+                          placeholder="0"
+                          pattern="[0-9]*"
+                          type="number"
+                          min="0"
+                          class="text-center"
+                          value={form?.away_goals ?? ''}
+                        />
+                      </div>
                     </div>
-                    <label class="block text-sm mt-5">
-                      {matchParticipant(match, 'home').name}
-                      <input
-                        class="input input-bordered w-full"
-                        id="home_goals"
-                        name="home_goals"
-                        placeholder="Kotijoukkueen maalit"
-                        pattern="[0-9]*"
-                        type="number"
-                        min="0"
-                        value={form?.home_goals ?? ''}
-                      />
-                    </label>
-                  </div>
 
-                  <div class="text-center font-bold w-1/2 py-4">
-                    <div class="flag-container">
-                      <TeamFlag
-                        countryCode={matchParticipant(match, 'away').country_code}
-                        name={matchParticipant(match, 'away').name}
-                        class="flag rounded-btn object-cover"
-                      />
-                    </div>
-                    <label class="block text-sm mt-5">
-                      {matchParticipant(match, 'away').name}
-                      <input
-                        class="input input-bordered w-full"
-                        id="away_goals"
-                        name="away_goals"
-                        placeholder="Vierasjoukkueen maalit"
-                        pattern="[0-9]*"
-                        type="number"
-                        min="0"
-                        value={form?.away_goals ?? ''}
-                      />
-                    </label>
-                  </div>
-                </div>
+                    <Button class="w-full gap-2" {loading} type="submit">
+                      <Save class="size-4" />
+                      Tallenna
+                    </Button>
 
-                <div class="text-center mt-4 px-4">
-                  <button class="btn btn-primary w-full" class:loading type="submit"
-                    >TALLENNA</button
-                  >
-                </div>
-              </div>
-              {#if form?.message && !form?.success}
-                <div class="text-center mt-4 px-4">
-                  <div class="btn btn-error w-full">{form.message}</div>
-                </div>
-              {/if}
-            </form>
+                    {#if form?.message && !form?.success}
+                      <Alert variant="destructive">{form.message}</Alert>
+                    {/if}
+                  </Card.Content>
+                </form>
+              </Carousel.Item>
+            {/each}
+          </Carousel.Content>
+
+          {#if slides.length > 1}
+            <Card.Footer class="justify-between pb-6 pt-2">
+              <Carousel.Previous
+                class="static h-9 w-9 translate-x-0 translate-y-0 disabled:opacity-40"
+              />
+              <span class="text-sm text-muted-foreground">
+                {slideIndex + 1} / {slides.length}
+              </span>
+              <Carousel.Next
+                class="static h-9 w-9 translate-x-0 translate-y-0 disabled:opacity-40"
+              />
+            </Card.Footer>
           {/if}
-        {/each}
-        <div
-          class="absolute flex justify-between transform -translate-y-4/5 left-5 right-5 top-4/5"
-        >
-          {#if currentIndex > 0}
-            <button class="btn btn-circle" on:click={() => navigate(-1)}>❮</button>
-          {:else}
-            <button class="btn btn-circle invisible">❮</button>
-          {/if}
-          {#if currentIndex < carouselLength - 1}
-            <button class="btn btn-circle" on:click={() => navigate(1)}>❯</button>
-          {:else}
-            <button class="btn btn-circle invisible">❯</button>
-          {/if}
-        </div>
-      </div>
+        </Carousel.Root>
+      </Card.Root>
 
       {#if data.tournamentStartsAt && new Date() < new Date(data.tournamentStartsAt)}
-        <div class="text-center mt-4 px-4">
-          Alkusarjan otteluiden arvausaika päättyy <Time
-            timestamp={data.tournamentStartsAt}
-            format="DD.MM.YYYY kello HH:mm"
-          />.
-        </div>
+        <p class="mt-4 text-center text-sm text-muted-foreground">
+          Alkusarjan otteluiden arvausaika päättyy
+          <Time timestamp={data.tournamentStartsAt} format="DD.MM.YYYY kello HH:mm" />.
+        </p>
       {/if}
     {/if}
-
-    <!-- UPDATE PREDICTIONS -->
   {:else if view == 'edit'}
-    <div class="flex flex-row justify-between mx-4 form-control w-full py-4">
-      <div class="btn btn-primary">
-        <a href="?create ">TAKAISIN</a>
-      </div>
-      <select class="select select-bordered w-64" bind:value={groupFilter}>
+    <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <Button href="?create" variant="outline" class="w-full gap-2 sm:w-auto">
+        <ArrowLeft class="size-4" />
+        Takaisin
+      </Button>
+      <Select class="w-full sm:w-48" bind:value={groupFilter}>
         <option value="">Kaikki</option>
         {#each Array.from(uniqueGroups) as group}
           <option value={group}>{group}</option>
         {/each}
-      </select>
+      </Select>
     </div>
 
     {#if !matches || matches.length === 0}
-      <div>Et ole vielä luonut veikkauksia</div>
+      <p class="text-center text-muted-foreground">Et ole vielä luonut veikkauksia</p>
     {:else}
-      <ul
-        class="card glass h-full relative carousel carousel-center m-4 p-4 border-inherit shadow-lg rounded-xl"
-      >
+      <div class="space-y-4">
         {#if groupFilter}
-          <div class="card-title text-accent-content text-2xl justify-center">
-            Lohko {groupFilter} ottelut
-          </div>
+          <h2 class="text-center text-lg font-semibold">Lohko {groupFilter} ottelut</h2>
         {/if}
+
         {#each matches as prediction}
-          <div class="card-content my-4">
-            <div class="form-control">
-              <div class="card-title text-accent-content text-2xl justify-center">
+          <Card.Root class="shadow-sm">
+            <Card.Header class="text-center">
+              <Card.Title class="text-lg">
+                {#if prediction?.groupStage}
+                  Lohko {prediction?.group}
+                {:else}
+                  {prediction?.group}
+                {/if}
+              </Card.Title>
+              <p class="text-sm text-muted-foreground">
                 <Time timestamp={prediction.match?.starts_at} format="DD.MM.YYYY HH:mm" />
-              </div>
-
-              <div class="flex justify-between mt-4 px-4">
-                <div class="text-center font-bold w-1/2">
-                  <div class="flag-container">
-                    <TeamFlag
-                      countryCode={matchParticipant(prediction.match, 'home').country_code}
-                      name={matchParticipant(prediction.match, 'home').name}
-                      class="flag rounded-btn object-cover"
-                    />
-                  </div>
-                  <label class="block text-sm mt-5">
-                    {matchParticipant(prediction.match, 'home').name}
-                    <input
-                      class="input input-bordered w-full"
-                      form="update-{prediction.guess_id}"
-                      name="home_goals"
-                      placeholder="Kotijoukkueen maalit"
-                      pattern="[0-9]*"
-                      type="number"
-                      min="0"
-                      value={prediction?.home_goals ?? 0}
-                    />
-                  </label>
+              </p>
+            </Card.Header>
+            <Card.Content class="space-y-4">
+              <div class="grid grid-cols-2 gap-4">
+                <div class="flex flex-col items-center gap-3 text-center">
+                  <TeamFlag
+                    countryCode={matchParticipant(prediction.match, 'home').country_code}
+                    name={matchParticipant(prediction.match, 'home').name}
+                    class="h-16 w-auto max-w-full rounded-md"
+                  />
+                  <span class="w-full text-xs font-medium"
+                    >{matchParticipant(prediction.match, 'home').name}</span
+                  >
+                  <Input
+                    form="update-{prediction.guess_id}"
+                    name="home_goals"
+                    type="number"
+                    min="0"
+                    class="text-center"
+                    value={prediction?.home_goals ?? 0}
+                  />
                 </div>
-
-                <div class="text-center font-bold w-1/2">
-                  <div class="flag-container">
-                    <TeamFlag
-                      countryCode={matchParticipant(prediction.match, 'away').country_code}
-                      name={matchParticipant(prediction.match, 'away').name}
-                      class="flag rounded-btn object-cover"
-                    />
-                  </div>
-                  <label class="block text-sm mt-5">
-                    {matchParticipant(prediction.match, 'away').name}
-                    <input
-                      class="input input-bordered w-full"
-                      form="update-{prediction.guess_id}"
-                      name="away_goals"
-                      placeholder="Vierasjoukkueen maalit"
-                      pattern="[0-9]*"
-                      type="number"
-                      min="0"
-                      value={prediction?.away_goals ?? 0}
-                    />
-                  </label>
+                <div class="flex flex-col items-center gap-3 text-center">
+                  <TeamFlag
+                    countryCode={matchParticipant(prediction.match, 'away').country_code}
+                    name={matchParticipant(prediction.match, 'away').name}
+                    class="h-16 w-auto max-w-full rounded-md"
+                  />
+                  <span class="w-full text-xs font-medium"
+                    >{matchParticipant(prediction.match, 'away').name}</span
+                  >
+                  <Input
+                    form="update-{prediction.guess_id}"
+                    name="away_goals"
+                    type="number"
+                    min="0"
+                    class="text-center"
+                    value={prediction?.away_goals ?? 0}
+                  />
                 </div>
               </div>
 
-              <div class="text-center mt-4 px-4 inline-flex gap-4 justify-between">
+              <div class="flex gap-2">
                 <form
                   class="w-1/3"
                   method="POST"
@@ -279,11 +293,15 @@
                   }}
                 >
                   <input type="hidden" name="guess_id" value={prediction.guess_id} />
-                  <button
-                    class="w-full btn btn-error"
+                  <Button
+                    variant="destructive"
+                    class="w-full gap-2"
                     type="submit"
-                    disabled={!isMatchPredictable(prediction.match)}>POISTA</button
+                    disabled={!isMatchPredictable(prediction.match)}
                   >
+                    <Trash2 class="size-4" />
+                    Poista
+                  </Button>
                 </form>
                 <form
                   id="update-{prediction.guess_id}"
@@ -299,39 +317,25 @@
                   }}
                 >
                   <input type="hidden" name="guess_id" value={prediction.guess_id} />
-                  <button
-                    class="w-full btn btn-primary"
-                    class:loading
+                  <Button
+                    class="w-full gap-2"
+                    {loading}
                     type="submit"
-                    disabled={!isMatchPredictable(prediction.match)}>TALLENNA</button
+                    disabled={!isMatchPredictable(prediction.match)}
                   >
+                    <Save class="size-4" />
+                    Tallenna
+                  </Button>
                 </form>
               </div>
-            </div>
-            {#if form?.message && !form?.success}
-              <div class="text-center mt-4 px-4">
-                <div class="btn btn-error w-full">{form.message}</div>
-              </div>
-            {/if}
-          </div>
-          <div class="divider divider-neutral" />
+
+              {#if form?.message && !form?.success}
+                <Alert variant="destructive">{form.message}</Alert>
+              {/if}
+            </Card.Content>
+          </Card.Root>
         {/each}
-      </ul>
+      </div>
     {/if}
   {/if}
 </div>
-
-<style>
-  .flag-container {
-    height: 4rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-  }
-  .flag {
-    height: 100%;
-    width: auto;
-    max-width: 100%;
-  }
-</style>

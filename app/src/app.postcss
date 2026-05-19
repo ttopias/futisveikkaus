@@ -3,25 +3,58 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --background: 0 0% 99%;
+    --foreground: 160 55% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 160 55% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 160 55% 12%;
+    --primary: 158 64% 18%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 152 28% 92%;
+    --secondary-foreground: 160 45% 18%;
+    --muted: 152 20% 94%;
+    --muted-foreground: 160 12% 38%;
+    --accent: 152 38% 90%;
+    --accent-foreground: 158 55% 18%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 152 18% 86%;
+    --input: 152 18% 86%;
+    --ring: 158 55% 32%;
+    --radius: 0.5rem;
+    --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+      sans-serif;
+  }
+
+  .dark {
+    --background: 158 55% 8%;
+    --foreground: 152 20% 96%;
+    --card: 158 45% 11%;
+    --card-foreground: 152 20% 96%;
+    --popover: 158 45% 11%;
+    --popover-foreground: 152 20% 96%;
+    --primary: 152 45% 42%;
+    --primary-foreground: 158 55% 8%;
+    --secondary: 158 30% 16%;
+    --secondary-foreground: 152 20% 96%;
+    --muted: 158 25% 14%;
+    --muted-foreground: 152 12% 62%;
+    --accent: 158 28% 16%;
+    --accent-foreground: 152 20% 96%;
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 158 25% 20%;
+    --input: 158 25% 20%;
+    --ring: 152 45% 42%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
   body {
-    background-color: #287f65;
-  }
-
-  body[data-theme='dark'] {
-    background-color: #003f2d;
-  }
-
-  .card {
-    backdrop-filter: blur(24px) saturate(180%);
-    -webkit-backdrop-filter: blur(16px) saturate(180%);
-    background-color: rgba(255, 255, 255, 0.75);
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.125);
-  }
-
-  .input,
-  .select {
-    color: white;
-    opacity: 50%;
+    @apply min-h-screen bg-background font-sans text-foreground antialiased;
   }
 }

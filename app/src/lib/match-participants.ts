@@ -48,11 +48,20 @@ export function enrichMatchesWithParticipants(matches: Match[]): Match[] {
   return matches.map(enrichMatchParticipants);
 }
 
+/** Full team row for admin / forms that need standings fields on nested teams. */
 export const MATCH_PARTICIPANT_SELECT = `
   home_slot,
   away_slot,
   home:home_id (team_id, country_code, name, group, win, draw, loss, gf, gaa),
   away:away_id (team_id, country_code, name, group, win, draw, loss, gf, gaa)
+`;
+
+/** Display-only participant fields (flags + names). */
+export const MATCH_PARTICIPANT_DISPLAY_SELECT = `
+  home_slot,
+  away_slot,
+  home:home_id (team_id, country_code, name),
+  away:away_id (team_id, country_code, name)
 `;
 
 export function isPlaceholderFlag(countryCode: string | null | undefined): boolean {

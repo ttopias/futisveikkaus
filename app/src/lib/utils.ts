@@ -1,10 +1,8 @@
 import type { User } from '@supabase/supabase-js';
-import { TeamInTable, TimeInTable, type Match, type Prediction, type Team } from '$lib/index';
 
-export const userColor = (role: string) => {
-  if (role === 'admin') return 'stroke-warning';
-  return '';
-};
+export { cn } from './utils/cn';
+export { formatMatchTime } from './utils/format-match-time';
+import type { Match, Prediction } from '$lib/index';
 
 export const getUserRole = (user: User | null | undefined): string => {
   const role = user?.app_metadata?.role;
@@ -89,111 +87,4 @@ export const rules = [
   { rule: 'Veikkaat tasapeliä, mutta ottelu ei pääty tasapeliin', points: '-2' },
   { rule: 'Veikkaat jommankumman voittoa, mutta ottelu päättyy tasapeliin', points: '-2' },
   { rule: 'Väärä voittaja', points: '-4' },
-];
-
-export const teamTableCols = [
-  {
-    key: 'country',
-    title: 'MAA',
-    value: (v: Team) => v.name,
-    renderComponent: TeamInTable,
-    sortable: false,
-  },
-  {
-    key: 'points',
-    title: 'P',
-    value: (v: Team) => v.win * 3 + v.draw,
-    sortable: true,
-  },
-  {
-    key: 'win',
-    title: 'V',
-    value: (v: Team) => v.win,
-    sortable: true,
-  },
-  {
-    key: 'draw',
-    title: 'T',
-    value: (v: Team) => v.draw,
-    sortable: true,
-  },
-  {
-    key: 'loss',
-    title: 'H',
-    value: (v: Team) => v.loss,
-    sortable: true,
-  },
-  {
-    key: 'gf',
-    title: 'TM',
-    value: (v: Team) => v.gf,
-    sortable: true,
-  },
-  {
-    key: 'gaa',
-    title: 'PM',
-    value: (v: Team) => v.gaa,
-    sortable: true,
-  },
-];
-
-export const matchTableCols = [
-  {
-    key: 'group',
-    title: 'LOHKO',
-    value: (v: Match) => v.group ?? '',
-    sortable: true,
-  },
-  {
-    key: 'starts_at',
-    title: 'PVM',
-    value: (v: Match) => kickoffMs(v.starts_at),
-    renderComponent: {
-      component: TimeInTable,
-      props: { field: 'starts_at', format: 'DD-MM-YYYY' },
-    },
-    sortable: true,
-  },
-  {
-    key: 'starts_at_time',
-    title: 'KLO',
-    value: (v: Match) => v.starts_at,
-    renderComponent: {
-      component: TimeInTable,
-      props: { field: 'starts_at', format: 'HH:mm' },
-    },
-    sortable: false,
-  },
-  {
-    key: 'home',
-    title: 'KOTI',
-    value: (v: Match) => v.home?.name ?? '',
-    renderComponent: {
-      component: TeamInTable,
-      props: { field: 'home', flagLeft: true },
-    },
-    sortable: false,
-  },
-  {
-    key: 'home_goals',
-    title: '',
-    value: (v: Match) => (v.finished ? v.home_goals : 0),
-    sortable: false,
-  },
-  {
-    key: 'away_goals',
-    title: '',
-    value: (v: Match) => (v.finished ? v.away_goals : 0),
-    sortable: false,
-  },
-  {
-    key: 'away',
-    title: 'VIERAS',
-    value: (v: Match) => v.away?.name ?? '',
-    renderComponent: {
-      component: TeamInTable,
-      props: { field: 'away', flagLeft: false },
-    },
-    sortable: false,
-  },
 ];

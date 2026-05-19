@@ -1,15 +1,14 @@
-import { MATCH_PARTICIPANT_SELECT } from '$lib/match-participants';
+import { MATCH_PARTICIPANT_DISPLAY_SELECT } from '$lib/match-participants';
 import { enrichMatchWithStageDisplay } from '$lib/stages';
-import {
-  canViewMatchGuesses,
-  fetchVisibleMatchStage,
-  isStageAtOrBefore,
-} from '$lib/tournament-stage';
+import { canViewMatchGuesses, isStageAtOrBefore } from '$lib/tournament-stage';
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import type { Prediction, Match } from '$lib';
 
-export const load: PageServerLoad = async ({ params, locals: { supabase, safeGetSession } }) => {
+export const load: PageServerLoad = async ({
+  params,
+  locals: { supabase, safeGetSession, getVisibleMatchStage },
+}) => {
   const match_id = params.id;
   const { user } = await safeGetSession();
 
@@ -18,27 +17,29 @@ export const load: PageServerLoad = async ({ params, locals: { supabase, safeGet
   }
 
   let visibleMatchStage;
+  let m_res;
   try {
-    visibleMatchStage = await fetchVisibleMatchStage(supabase);
-  } catch (e) {
-    error(500, e instanceof Error ? e.message : 'Failed to load tournament stage');
-  }
-
-  const m_res = await supabase
-    .from('matches')
-    .select(
-      `
+    [visibleMatchStage, m_res] = await Promise.all([
+      getVisibleMatchStage(),
+      supabase
+        .from('matches')
+        .select(
+          `
       match_id,
       stage,
       starts_at,
-      ${MATCH_PARTICIPANT_SELECT},
+      ${MATCH_PARTICIPANT_DISPLAY_SELECT},
       home_goals,
       away_goals,
       finished
     `,
-    )
-    .eq('match_id', match_id)
-    .maybeSingle();
+        )
+        .eq('match_id', match_id)
+        .maybeSingle(),
+    ]);
+  } catch (e) {
+    error(500, e instanceof Error ? e.message : 'Failed to load tournament stage');
+  }
 
   if (m_res.error) {
     console.error('error', m_res.error);
@@ -49,16 +50,17 @@ export const load: PageServerLoad = async ({ params, locals: { supabase, safeGet
     error(404, 'Match not found');
   }
 
-  const match = enrichMatchWithStageDisplay(m_res.data as Match);
+  const match = enrichMatchWithStageDisplay(m_res.data as unknown as Match);
 
   if (!isStageAtOrBefore(match.stage, visibleMatchStage)) {
     error(404, 'This match is not available yet');
   }
 
-  const g_res = await supabase
-    .from('guesses')
-    .select(
-      `
+  const [g_res, profileRes] = await Promise.all([
+    supabase
+      .from('guesses')
+      .select(
+        `
         guess_id,
         profile:user_id (id, first_name),
         home_goals,
@@ -66,8 +68,10 @@ export const load: PageServerLoad = async ({ params, locals: { supabase, safeGet
         points,
         points_calculated
       `,
-    )
-    .eq('match_id', match_id);
+      )
+      .eq('match_id', match_id),
+    supabase.from('profiles').select('first_name').eq('id', user.id).maybeSingle(),
+  ]);
 
   if (g_res.error) {
     console.error('error', g_res.error);
@@ -76,11 +80,7 @@ export const load: PageServerLoad = async ({ params, locals: { supabase, safeGet
 
   let guesses = (g_res.data ?? []) as unknown as Prediction[];
 
-  const { data: myProfile } = await supabase
-    .from('profiles')
-    .select('first_name')
-    .eq('id', user.id)
-    .maybeSingle();
+  const myProfile = profileRes.data;
 
   const canViewGuesses = canViewMatchGuesses(match, visibleMatchStage);
 

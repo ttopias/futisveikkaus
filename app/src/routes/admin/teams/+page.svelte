@@ -1,167 +1,138 @@
 <script lang="ts">
   import { enhance } from '$app/forms';
-  import { Content, Modal, Trigger } from '$lib/index';
   import TeamFlag from '$lib/components/TeamFlag.svelte';
+  import { Alert } from '$lib/components/ui/alert';
+  import { Button, buttonVariants } from '$lib/components/ui/button';
+  import { Input } from '$lib/components/ui/input';
+  import { Label } from '$lib/components/ui/label';
+  import * as Card from '$lib/components/ui/card';
+  import * as Dialog from '$lib/components/ui/dialog';
+  import { cn } from '$lib/utils';
   import type { ActionData, PageData } from './$types';
+  import Plus from 'lucide-svelte/icons/plus';
+  import Settings from 'lucide-svelte/icons/settings';
 
   export let data: PageData;
   export let form: ActionData;
   let loading = false;
 </script>
 
-<Modal small>
-  <Content class="glass card rounded-btn pt-2">
-    <div class="card-title justify-center">Add Team</div>
-    <form
-      method="POST"
-      action="?/create"
-      use:enhance={() => {
-        loading = true;
-        return async ({ update }) => {
-          update();
-          loading = false;
-        };
-      }}
-    >
-      <div class="form-control card-body">
+<div class="mx-auto w-full min-w-0 lg:max-w-6xl">
+  <Dialog.Root>
+    <Dialog.Trigger class={cn(buttonVariants(), 'mb-4')}>
+      <Plus class="size-4" />
+      Add team
+    </Dialog.Trigger>
+    <Dialog.Content class="max-w-sm gap-4 sm:max-w-md">
+      <Dialog.Header class="text-center sm:text-center">
+        <Dialog.Title>Add team</Dialog.Title>
+      </Dialog.Header>
+      <form
+        method="POST"
+        action="?/create"
+        class="space-y-4"
+        use:enhance={() => {
+          loading = true;
+          return async ({ update }) => {
+            update();
+            loading = false;
+          };
+        }}
+      >
         {#if form?.error}
-          <div class="alert alert-error">{form.error}</div>
+          <Alert variant="destructive">{form.error}</Alert>
         {/if}
 
-        <label class="input input-bordered flex items-center gap-2">
-          <span class="">ISO 3166 code</span>
-          <input
+        <div class="space-y-2">
+          <Label for="country_code">ISO 3166 code</Label>
+          <Input
             id="country_code"
             name="country_code"
-            class="grow"
             placeholder="de"
-            type="text"
             value={form?.country_code ?? ''}
           />
-        </label>
+        </div>
+        <div class="space-y-2">
+          <Label for="name">Name</Label>
+          <Input id="name" name="name" placeholder="Germany" value={form?.name ?? ''} />
+        </div>
+        <div class="space-y-2">
+          <Label for="group">Group</Label>
+          <Input id="group" name="group" placeholder="A" value={form?.group ?? ''} />
+        </div>
 
-        <label class="input input-bordered flex items-center gap-2">
-          <span class="">Name</span>
-          <input
-            id="name"
-            name="name"
-            class="grow"
-            placeholder="Germany"
-            type="text"
-            value={form?.name ?? ''}
-          />
-        </label>
+        <Button class="w-full" {loading} type="submit">Add team</Button>
+      </form>
+    </Dialog.Content>
+  </Dialog.Root>
 
-        <label class="input input-bordered flex items-center gap-2">
-          <span class="">Group</span>
-          <input
-            id="group"
-            name="group"
-            class="grow"
-            placeholder="A"
-            type="text"
-            value={form?.group ?? ''}
-          />
-        </label>
-      </div>
-      <div class="form-control mx-4 mb-4">
-        <button type="submit" class="btn btn-primary" class:loading>ADD TEAM</button>
-      </div>
-    </form>
-  </Content>
-  <Trigger><button class="my-2 btn btn-primary rounded-btn">Add team</button></Trigger>
-</Modal>
-{#if !data?.teams || Object.keys(data?.teams).length === 0}
-  <p>No teams found</p>
-{:else}
-  <div
-    class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 text-primary-content"
-  >
-    {#each Object.keys(data?.teams) as group}
-      <div class="card w-96 glass card-bordered card-compact my-4 pt-4 shadow-xl">
-        <div class="pt-1 card-title justify-center">Lohko {group}</div>
-        <div class="card-body">
-          {#each data?.teams[group] as team}
-            <Modal small>
-              <Content class="glass w-full rounded-btn p-4">
-                <form
-                  method="POST"
-                  action="?/update"
-                  use:enhance={() => {
-                    loading = true;
-                    return async ({ update }) => {
-                      update();
-                      loading = false;
-                    };
-                  }}
+  {#if !data?.teams || Object.keys(data?.teams).length === 0}
+    <p class="text-muted-foreground">No teams found</p>
+  {:else}
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      {#each Object.keys(data?.teams) as group}
+        <Card.Root class="shadow-sm">
+          <Card.Header>
+            <Card.Title class="text-center text-base">Lohko {group}</Card.Title>
+          </Card.Header>
+          <Card.Content class="space-y-2">
+            {#each data?.teams[group] as team}
+              <Dialog.Root>
+                <Dialog.Trigger
+                  class="flex w-full items-center gap-2 rounded-md border px-3 py-2 text-left text-sm hover:bg-muted"
                 >
-                  <div class="form-control">
-                    {#if form?.error}
-                      <div class="alert alert-error">{form.error}</div>
-                    {/if}
-                    <input type="hidden" name="team_id" value={team?.team_id} />
-
-                    <label class="input input-bordered flex items-center gap-2">
-                      <span class="">Country code</span>
-                      <input
-                        id="country_code"
-                        name="country_code"
-                        class="grow"
-                        placeholder="Country code"
-                        type="text"
-                        value={form?.country_code ?? team.country_code}
-                      />
-                    </label>
-
-                    <label class="input input-bordered flex items-center gap-2">
-                      <span class="">Name</span>
-                      <input
-                        id="name"
-                        name="name"
-                        class="grow"
-                        placeholder="Name"
-                        type="text"
-                        value={form?.name ?? team?.name}
-                      />
-                    </label>
-
-                    <label class="input input-bordered flex items-center gap-2">
-                      <span class="">Group</span>
-                      <input
-                        id="group"
-                        name="group"
-                        class="grow"
-                        placeholder="group"
-                        type="text"
-                        value={form?.group ?? team?.group}
-                      />
-                    </label>
-
-                    <p class="text-sm opacity-80 pt-2">
-                      {team.win}W {team.draw}D {team.loss}L · {team.gf}–{team.gaa}
-                      <span class="block text-xs">(lasketaan otteluista)</span>
-                    </p>
-                  </div>
-
-                  <div class="form-control mt-4 mb-4">
-                    <button type="submit" class="btn btn-primary" class:loading>UPDATE TEAM</button>
-                  </div>
-                </form>
-              </Content>
-              <Trigger>
-                <div class="card-actions items-center gap-1">
                   <TeamFlag
                     countryCode={team.country_code}
                     name={team.name}
-                    class="flag h-6 w-9 object-cover"
+                    class="h-5 w-8 object-cover"
                   />
-                  {team.name}
-                </div>
-              </Trigger>
-            </Modal>
-          {/each}
-        </div>
-      </div>
-    {/each}
-  </div>
-{/if}
+                  <span class="min-w-0 flex-1 truncate">{team.name}</span>
+                  <Settings class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                </Dialog.Trigger>
+                <Dialog.Content class="max-w-sm gap-4 sm:max-w-md">
+                  <form
+                    method="POST"
+                    action="?/update"
+                    class="space-y-3"
+                    use:enhance={() => {
+                      loading = true;
+                      return async ({ update }) => {
+                        update();
+                        loading = false;
+                      };
+                    }}
+                  >
+                    {#if form?.error}
+                      <Alert variant="destructive">{form.error}</Alert>
+                    {/if}
+                    <input type="hidden" name="team_id" value={team?.team_id} />
+
+                    <div class="space-y-2">
+                      <Label>Country code</Label>
+                      <Input name="country_code" value={form?.country_code ?? team.country_code} />
+                    </div>
+                    <div class="space-y-2">
+                      <Label>Name</Label>
+                      <Input name="name" value={form?.name ?? team?.name} />
+                    </div>
+                    <div class="space-y-2">
+                      <Label>Group</Label>
+                      <Input name="group" value={form?.group ?? team?.group} />
+                    </div>
+
+                    <p class="text-xs text-muted-foreground">
+                      {team.win}W {team.draw}D {team.loss}L · {team.gf}–{team.gaa}
+                      <span class="block">(lasketaan otteluista)</span>
+                    </p>
+
+                    <Button class="w-full" {loading} type="submit">Update team</Button>
+                  </form>
+                </Dialog.Content>
+              </Dialog.Root>
+            {/each}
+          </Card.Content>
+        </Card.Root>
+      {/each}
+    </div>
+  {/if}
+</div>

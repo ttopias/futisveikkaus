@@ -6,18 +6,19 @@ import { MATCH_STAGES, type MatchStage } from '$lib/stages';
  * When every match is finished, returns `final`.
  */
 export async function fetchVisibleMatchStage(supabase: SupabaseClient): Promise<MatchStage> {
+  const { data, error } = await supabase.from('matches').select('stage').eq('finished', false);
+
+  if (error) {
+    throw new Error(`fetchVisibleMatchStage: ${error.message}`);
+  }
+
+  if (!data?.length) {
+    return 'final';
+  }
+
+  const unfinishedStages = new Set(data.map((row) => row.stage));
   for (const stage of MATCH_STAGES) {
-    const { count, error } = await supabase
-      .from('matches')
-      .select('*', { count: 'exact', head: true })
-      .eq('stage', stage)
-      .eq('finished', false);
-
-    if (error) {
-      throw new Error(`fetchVisibleMatchStage(${stage}): ${error.message}`);
-    }
-
-    if ((count ?? 0) > 0) {
+    if (unfinishedStages.has(stage)) {
       return stage;
     }
   }
@@ -44,7 +45,10 @@ export function stageIndex(stage: MatchStage): number {
 }
 
 /** True when `stage` is the visible stage or an earlier one in tournament order. */
-export function isStageAtOrBefore(stage: string | null | undefined, visibleStage: MatchStage): boolean {
+export function isStageAtOrBefore(
+  stage: string | null | undefined,
+  visibleStage: MatchStage,
+): boolean {
   if (!stage || !MATCH_STAGES.includes(stage as MatchStage)) return false;
   return stageIndex(stage as MatchStage) <= stageIndex(visibleStage);
 }

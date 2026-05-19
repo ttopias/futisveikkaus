@@ -1,7 +1,7 @@
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import type { Prediction, User } from '$lib/index';
-import { MATCH_PARTICIPANT_SELECT } from '$lib/match-participants';
+import { MATCH_PARTICIPANT_DISPLAY_SELECT } from '$lib/match-participants';
 import { groupByUser, sortPredsByDateTime, transformDataForChart } from '$lib/utils';
 
 export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession } }) => {
@@ -13,18 +13,12 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
   let standings = [] as User[];
   let predictions = [] as Prediction[];
 
-  const res = await supabase
-    .from('dashboard')
-    .select('user_id, first_name, total_points')
-    .order('total_points', { ascending: false });
-
-  if (res.error) {
-    console.error('Error fetching data:', res.error.message);
-    return { standings, predictions };
-  }
-  standings = res.data as unknown as User[];
-
-  const sec_res = await supabase.from('guesses').select(
+  const [res, sec_res] = await Promise.all([
+    supabase
+      .from('dashboard')
+      .select('user_id, first_name, total_points')
+      .order('total_points', { ascending: false }),
+    supabase.from('guesses').select(
     `
     guess_id,
     profile:user_id (id, first_name),
@@ -32,7 +26,7 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
       match_id,
       stage,
       starts_at,
-      ${MATCH_PARTICIPANT_SELECT},
+      ${MATCH_PARTICIPANT_DISPLAY_SELECT},
       home_goals,
       away_goals,
       finished
@@ -42,7 +36,14 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
     points,
     points_calculated
   `,
-  );
+    ),
+  ]);
+
+  if (res.error) {
+    console.error('Error fetching data:', res.error.message);
+    return { standings, predictions };
+  }
+  standings = res.data as unknown as User[];
 
   if (sec_res.error) {
     return { standings, predictions: [], chartData: [] };

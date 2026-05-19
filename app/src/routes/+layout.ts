@@ -22,9 +22,13 @@ export const load: LayoutLoad = async ({ fetch, data, depends }) => {
         },
       });
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  // SSR: user already validated in +layout.server.ts — skip duplicate getSession.
+  let session = null;
+  if (isBrowser()) {
+    ({
+      data: { session },
+    } = await supabase.auth.getSession());
+  }
 
   return {
     supabase,

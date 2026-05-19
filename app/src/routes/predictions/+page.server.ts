@@ -2,12 +2,8 @@ import { error, fail } from '@sveltejs/kit';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Actions, PageServerLoad } from './$types';
 import type { Match, Prediction } from '$lib/index';
-import {
-  fetchVisibleMatchStage,
-  filterMatchesByVisibleStage,
-  isMatchInVisibleStage,
-} from '$lib/tournament-stage';
-import { MATCH_PARTICIPANT_SELECT } from '$lib/match-participants';
+import { filterMatchesByVisibleStage, isMatchInVisibleStage } from '$lib/tournament-stage';
+import { MATCH_PARTICIPANT_DISPLAY_SELECT } from '$lib/match-participants';
 import {
   enrichMatchesWithStageDisplay,
   enrichPredictionsWithStageDisplay,
@@ -16,32 +12,40 @@ import {
 import type { MatchStage } from '$lib/stages';
 import { sortByDateTime, sortPredsByDateTime } from '$lib/utils';
 
-export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession } }) => {
-  const { user } = await safeGetSession();
-
+export const load: PageServerLoad = async ({
+  locals: { supabase, safeGetSession, getVisibleMatchStage },
+}) => {
   let predictions: Prediction[] = [];
   let predictableMatches: Match[] = [];
   let visibleMatchStage: MatchStage;
+
+  let user: Awaited<ReturnType<typeof safeGetSession>>['user'];
+  try {
+    const [sessionResult, stage] = await Promise.all([
+      safeGetSession(),
+      getVisibleMatchStage(),
+    ]);
+    user = sessionResult.user;
+    visibleMatchStage = stage;
+  } catch (e) {
+    error(500, e instanceof Error ? e.message : 'Failed to load tournament stage');
+  }
 
   if (!user) {
     error(401, 'Unauthorized');
   }
 
-  try {
-    visibleMatchStage = await fetchVisibleMatchStage(supabase);
-  } catch (e) {
-    error(500, e instanceof Error ? e.message : 'Failed to load tournament stage');
-  }
-
-  const res = await supabase.from('guesses').select(
-    `
+  const res = await supabase
+    .from('guesses')
+    .select(
+      `
     guess_id,
     user_id,
     match:match_id (
       match_id,
       stage,
       starts_at,
-      ${MATCH_PARTICIPANT_SELECT},
+      ${MATCH_PARTICIPANT_DISPLAY_SELECT},
       home_goals,
       away_goals,
       finished
@@ -51,14 +55,14 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
     points,
     points_calculated
   `,
-  );
+    )
+    .eq('user_id', user.id);
 
   if (res.error) {
     error(500, res.error.message);
   }
 
   predictions = res.data as unknown as Prediction[];
-  predictions = predictions.filter((p) => p.user_id === user.id);
   predictions = predictions.filter((p) => isMatchInVisibleStage(p.match, visibleMatchStage));
 
   const predictionsMade = predictions?.map((p: Prediction) => p.match.match_id);
@@ -70,7 +74,7 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
   match_id,
   stage,
   starts_at,
-  ${MATCH_PARTICIPANT_SELECT},
+  ${MATCH_PARTICIPANT_DISPLAY_SELECT},
   home_goals,
   away_goals,
   finished
@@ -173,7 +177,7 @@ async function assertGuessPredictable(
 }
 
 export const actions: Actions = {
-  create: async ({ request, locals: { supabase, safeGetSession } }) => {
+  create: async ({ request, locals: { supabase, safeGetSession, getVisibleMatchStage } }) => {
     const { user } = await safeGetSession();
 
     if (!user) {
@@ -182,7 +186,7 @@ export const actions: Actions = {
 
     let visibleMatchStage: MatchStage;
     try {
-      visibleMatchStage = await fetchVisibleMatchStage(supabase);
+      visibleMatchStage = await getVisibleMatchStage();
     } catch (e) {
       return fail(500, {
         message: e instanceof Error ? e.message : 'Failed to load tournament stage',
@@ -227,7 +231,7 @@ export const actions: Actions = {
     };
   },
 
-  update: async ({ request, locals: { supabase, safeGetSession } }) => {
+  update: async ({ request, locals: { supabase, safeGetSession, getVisibleMatchStage } }) => {
     const { user } = await safeGetSession();
 
     if (!user) {
@@ -236,7 +240,7 @@ export const actions: Actions = {
 
     let visibleMatchStage: MatchStage;
     try {
-      visibleMatchStage = await fetchVisibleMatchStage(supabase);
+      visibleMatchStage = await getVisibleMatchStage();
     } catch (e) {
       return fail(500, {
         message: e instanceof Error ? e.message : 'Failed to load tournament stage',
@@ -290,7 +294,7 @@ export const actions: Actions = {
     };
   },
 
-  delete: async ({ request, locals: { supabase, safeGetSession } }) => {
+  delete: async ({ request, locals: { supabase, safeGetSession, getVisibleMatchStage } }) => {
     const { user } = await safeGetSession();
 
     if (!user) {
@@ -299,7 +303,7 @@ export const actions: Actions = {
 
     let visibleMatchStage: MatchStage;
     try {
-      visibleMatchStage = await fetchVisibleMatchStage(supabase);
+      visibleMatchStage = await getVisibleMatchStage();
     } catch (e) {
       return fail(500, {
         message: e instanceof Error ? e.message : 'Failed to load tournament stage',
