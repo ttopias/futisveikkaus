@@ -1,6 +1,7 @@
 <script lang="ts">
   import { enhance } from '$app/forms';
   import { Content, Modal, Trigger } from '$lib/index';
+  import TeamFlag from '$lib/components/TeamFlag.svelte';
   import type { ActionData, PageData } from './$types';
 
   export let data: PageData;
@@ -16,7 +17,7 @@
       action="?/create"
       use:enhance={() => {
         loading = true;
-        return async ({ result, update }) => {
+        return async ({ update }) => {
           update();
           loading = false;
         };
@@ -88,7 +89,7 @@
                   action="?/update"
                   use:enhance={() => {
                     loading = true;
-                    return async ({ result, update }) => {
+                    return async ({ update }) => {
                       update();
                       loading = false;
                     };
@@ -136,65 +137,10 @@
                       />
                     </label>
 
-                    <label class="input input-bordered flex items-center gap-2">
-                      <span class="">Wins</span>
-                      <input
-                        id="win"
-                        name="win"
-                        class="grow"
-                        placeholder="win"
-                        type="number"
-                        value={form?.win ?? team?.win}
-                      />
-                    </label>
-
-                    <label class="input input-bordered flex items-center gap-2">
-                      <span class="">Draws</span>
-                      <input
-                        id="draw"
-                        name="draw"
-                        class="grow"
-                        placeholder="draw"
-                        type="number"
-                        value={form?.draw ?? team?.draw}
-                      />
-                    </label>
-
-                    <label class="input input-bordered flex items-center gap-2">
-                      <span class="">Wins</span>
-                      <input
-                        id="loss"
-                        name="loss"
-                        class="grow"
-                        placeholder="loss"
-                        type="number"
-                        value={form?.loss ?? team?.loss}
-                      />
-                    </label>
-
-                    <label class="input input-bordered flex items-center gap-2">
-                      <span class="">Goals for</span>
-                      <input
-                        id="gf"
-                        name="gf"
-                        class="grow"
-                        placeholder="gf"
-                        type="number"
-                        value={form?.gf ?? team?.gf}
-                      />
-                    </label>
-
-                    <label class="input input-bordered flex items-center gap-2">
-                      <span class="">Goals against</span>
-                      <input
-                        id="gaa"
-                        name="gaa"
-                        class="grow"
-                        placeholder="gaa"
-                        type="number"
-                        value={form?.gaa ?? team?.gaa}
-                      />
-                    </label>
+                    <p class="text-sm opacity-80 pt-2">
+                      {team.win}W {team.draw}D {team.loss}L · {team.gf}–{team.gaa}
+                      <span class="block text-xs">(lasketaan otteluista)</span>
+                    </p>
                   </div>
 
                   <div class="form-control mt-4 mb-4">
@@ -204,10 +150,10 @@
               </Content>
               <Trigger>
                 <div class="card-actions items-center gap-1">
-                  <img
-                    class="flag h-6 w-9"
-                    src={`../flags/${team.country_code}.svg`}
-                    alt="{team.name} flag"
+                  <TeamFlag
+                    countryCode={team.country_code}
+                    name={team.name}
+                    class="flag h-6 w-9 object-cover"
                   />
                   {team.name}
                 </div>

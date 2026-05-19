@@ -1,4 +1,4 @@
-import { SupabaseClient, Session } from '@supabase/supabase-js';
+import type { Session, SupabaseClient, User } from '@supabase/supabase-js';
 
 declare global {
   namespace App {
@@ -8,6 +8,8 @@ declare global {
     }
     interface PageData {
       user: User | null;
+      /** Earliest match kickoff (min starts_at); null when no matches in DB. */
+      tournamentStartsAt?: string | null;
       // session: Session | null;
     }
     // interface Error {}

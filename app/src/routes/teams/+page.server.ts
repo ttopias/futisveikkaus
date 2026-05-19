@@ -9,16 +9,19 @@ export const load: PageServerLoad = async ({ locals: { supabase } }) => {
 
   if (error) {
     console.error('Error fetching teams', error.message);
-    return { data: null };
+    return { teams: {} };
   }
 
-  const groupedTeams: { [key: string]: Team[] } = data.reduce((acc: any, team: any) => {
-    if (!acc[team.group]) {
-      acc[team.group] = [];
-    }
-    acc[team.group].push(team);
-    return acc;
-  }, {});
+  const groupedTeams: { [key: string]: Team[] } = data.reduce(
+    (acc: Record<string, Team[]>, team: Team) => {
+      if (!acc[team.group]) {
+        acc[team.group] = [];
+      }
+      acc[team.group].push(team);
+      return acc;
+    },
+    {},
+  );
 
   return { teams: groupedTeams };
 };

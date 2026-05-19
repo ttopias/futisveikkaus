@@ -79,7 +79,7 @@
       </label>
 
       <div class="form-control mt-6">
-        <button class="btn btn-primary" class:loading> NOLLAA SALASANA </button>
+        <button class="btn btn-primary" class:loading {disabled}> NOLLAA SALASANA </button>
       </div>
     </div>
   </form>

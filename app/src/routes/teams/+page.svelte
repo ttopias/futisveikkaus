@@ -8,7 +8,7 @@
 
 <div class="grid grid-cols-1 md:grid-cols-2 w-full m-4 gap-2 justify-center">
   {#if !data.teams || Object.keys(data.teams).length === 0}
-    <p>Jotain meni pieleen..</p>
+    <p class="m-4 text-center text-accent-content">Ei joukkueita näytettäväksi.</p>
   {:else}
     {#each Object.keys(data?.teams).sort((a, b) => a.localeCompare(b)) as group}
       <div
@@ -24,7 +24,7 @@
               } else if (b.gf !== a.gf) {
                 return b.gf - a.gf;
               } else {
-                return a.ga - b.ga;
+                return a.gaa - b.gaa;
               }
             })}
             classNameTable={'table table-xs text-left'}

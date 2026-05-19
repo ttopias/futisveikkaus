@@ -1,13 +1,19 @@
 <script lang="ts">
   import SvelteTable from 'svelte-table';
   import type { PageData } from './$types';
+  import type { User } from '$lib';
   import UserPointsChart from './UserPointsChart.svelte';
 
   export let data: PageData;
   let chartData = data?.chartData;
   const columns = [
-    { key: 'first_name', title: 'NIMI', value: (v: any) => v.first_name },
-    { key: 'total_points', title: 'PISTEET', value: (v: any) => v.total_points, sortable: true },
+    { key: 'first_name', title: 'NIMI', value: (v: User) => v.first_name },
+    {
+      key: 'total_points',
+      title: 'PISTEET',
+      value: (v: User) => v.total_points ?? 0,
+      sortable: true,
+    },
   ];
 </script>
 

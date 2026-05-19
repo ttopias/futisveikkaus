@@ -1,60 +1,87 @@
-CREATE TABLE IF NOT EXISTS matches (
-    match_id serial PRIMARY KEY,
-    date text NOT NULL,
-    time text NOT NULL,
-    home_id int NOT NULL,
-    away_id int NOT NULL,
-    home_goals int DEFAULT 0,
-    away_goals int DEFAULT 0,
-    finished boolean DEFAULT false
+-- Types
+CREATE TYPE public.match_stage AS ENUM (
+  'group',
+  'r32',
+  'r16',
+  'qf',
+  'sf',
+  'third',
+  'final'
 );
 
-CREATE TABLE IF NOT EXISTS teams (
+-- Tables
+CREATE TABLE teams (
     team_id serial PRIMARY KEY,
     country_code text NOT NULL,
     name text NOT NULL,
     "group" text NOT NULL,
-    win int DEFAULT 0,
-    draw int DEFAULT 0,
-    loss int DEFAULT 0,
-    gf int DEFAULT 0,
-    gaa int DEFAULT 0
+    win int DEFAULT 0 NOT NULL,
+    draw int DEFAULT 0 NOT NULL,
+    loss int DEFAULT 0 NOT NULL,
+    gf int DEFAULT 0 NOT NULL,
+    gaa int DEFAULT 0 NOT NULL,
+    CONSTRAINT teams_group_check CHECK ("group" ~ '^[A-L]$')
 );
 
-CREATE TABLE IF NOT EXISTS guesses (
-	guess_id serial UNIQUE,
-	match_id int NOT NULL,
-	user_id uuid NOT NULL,
-	home_goals int NOT NULL,
-	away_goals int NOT NULL,
-	points int DEFAULT 0,
-	points_calculated boolean DEFAULT false,
-	PRIMARY KEY ("guess_id")
+CREATE TABLE matches (
+    match_id serial PRIMARY KEY,
+    match_number int UNIQUE NOT NULL,
+    stage public.match_stage NOT NULL DEFAULT 'group',
+    starts_at timestamptz NOT NULL,
+    home_id int REFERENCES teams(team_id),
+    away_id int REFERENCES teams(team_id),
+    home_slot text,
+    away_slot text,
+    home_goals int DEFAULT 0 NOT NULL,
+    away_goals int DEFAULT 0 NOT NULL,
+    finished boolean DEFAULT false NOT NULL,
+    CONSTRAINT matches_home_slot_format CHECK (
+        home_slot IS NULL OR home_slot ~ '^(winner|loser):\d+$|^[123][A-L]+$'
+    ),
+    CONSTRAINT matches_away_slot_format CHECK (
+        away_slot IS NULL OR away_slot ~ '^(winner|loser):\d+$|^[123][A-L]+$'
+    ),
+    CONSTRAINT matches_participants_check CHECK (
+        (stage = 'group' AND home_id IS NOT NULL AND away_id IS NOT NULL
+            AND home_slot IS NULL AND away_slot IS NULL)
+        OR (stage <> 'group' AND home_slot IS NOT NULL AND away_slot IS NOT NULL)
+    )
 );
 
-CREATE TABLE IF NOT EXISTS dashboard (
-    user_id uuid PRIMARY KEY,
-    total_points int,
-    first_name text
+CREATE TABLE profiles (
+    id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    first_name text NOT NULL
 );
 
-create table profiles (
-  id uuid references auth.users on delete cascade not null primary key,
-  first_name text unique,
+CREATE TABLE guesses (
+    guess_id serial PRIMARY KEY,
+    match_id int NOT NULL REFERENCES matches(match_id) ON DELETE CASCADE,
+    user_id uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+    home_goals int NOT NULL,
+    away_goals int NOT NULL,
+    points int DEFAULT 0 NOT NULL,
+    points_calculated boolean DEFAULT false NOT NULL,
+    CONSTRAINT guesses_user_match_unique UNIQUE (user_id, match_id)
 );
 
--- DATABASE CONSTRAINTS AND INDEXES
-ALTER TABLE matches ADD CONSTRAINT matches_home_fk FOREIGN KEY (home_id) REFERENCES teams(team_id);
-ALTER TABLE matches ADD CONSTRAINT matches_away_fk FOREIGN KEY (away_id) REFERENCES teams(team_id);
-ALTER TABLE guesses ADD CONSTRAINT guesses_fk1 FOREIGN KEY (match_id) REFERENCES matches(match_id) ON DELETE CASCADE;
-ALTER TABLE guesses ADD CONSTRAINT guesses_fk2 FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
-CREATE INDEX IF NOT EXISTS idx_teams_team_id ON teams(team_id);
-CREATE INDEX IF NOT EXISTS idx_matches_match_id ON matches(match_id);
-CREATE INDEX IF NOT EXISTS idx_matches_home_id ON matches(home_id);
-CREATE INDEX IF NOT EXISTS idx_matches_away_id ON matches(away_id);
-CREATE INDEX IF NOT EXISTS idx_matches_finished ON matches(finished);
+CREATE TABLE dashboard (
+    user_id uuid PRIMARY KEY REFERENCES profiles(id) ON DELETE CASCADE,
+    total_points int DEFAULT 0 NOT NULL,
+    first_name text NOT NULL
+);
 
-CREATE INDEX IF NOT EXISTS idx_guesses_match_id ON guesses(match_id);
-CREATE INDEX IF NOT EXISTS idx_guesses_user_id ON guesses(user_id);
-CREATE INDEX IF NOT EXISTS idx_guesses_points ON guesses(points);
-CREATE INDEX IF NOT EXISTS idx_guesses_points_calculated ON guesses(points_calculated);
+-- Indexes
+CREATE UNIQUE INDEX idx_teams_name ON teams(name);
+CREATE INDEX idx_teams_team_id ON teams(team_id);
+CREATE INDEX idx_matches_match_id ON matches(match_id);
+CREATE INDEX idx_matches_match_number ON matches(match_number);
+CREATE INDEX idx_matches_starts_at ON matches(starts_at);
+CREATE INDEX idx_matches_home_id ON matches(home_id);
+CREATE INDEX idx_matches_away_id ON matches(away_id);
+CREATE INDEX idx_matches_finished ON matches(finished);
+CREATE INDEX idx_profiles_first_name ON profiles(first_name);
+
+CREATE INDEX idx_guesses_match_id ON guesses(match_id);
+CREATE INDEX idx_guesses_user_id ON guesses(user_id);
+CREATE INDEX idx_guesses_points ON guesses(points);
+CREATE INDEX idx_guesses_points_calculated ON guesses(points_calculated);

@@ -1,3 +1,4 @@
+import type { MatchStage } from '$lib/stages';
 import Content from '$lib/components/Content.svelte';
 import Modal from '$lib/components/Modal.svelte';
 import Portal from '$lib/components/Portal.svelte';
@@ -16,17 +17,24 @@ export type Guess = {
 
 export type Match = {
   match_id: number;
-  predictable_until: string;
-  date: string;
-  time: string;
-  home: Team;
-  away: Team;
+  match_number?: number;
+  stage?: MatchStage;
+  starts_at: string;
+  home?: Team | null;
+  away?: Team | null;
+  home_slot?: string | null;
+  away_slot?: string | null;
   home_goals: number;
   away_goals: number;
   finished: boolean;
   index?: number;
   groupStage?: boolean;
   group?: string;
+};
+
+export type Profile = {
+  id: string;
+  first_name: string;
 };
 
 export type Prediction = {
@@ -36,10 +44,10 @@ export type Prediction = {
   home_goals: number;
   away_goals: number;
   points: number;
-  points_calculated: number;
+  points_calculated: boolean;
   groupStage?: boolean;
   group?: string;
-  user?: User;
+  profile?: Profile;
 };
 
 export type Team = {
@@ -51,7 +59,7 @@ export type Team = {
   draw: number;
   loss: number;
   gf: number;
-  ga: number;
+  gaa: number;
 };
 
 export type User = {

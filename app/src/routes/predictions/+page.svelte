@@ -4,8 +4,10 @@
   import { page } from '$app/stores';
   import type { ActionData, PageData } from './$types';
   import Time from 'svelte-time';
-  import { PUBLIC_START_DATE } from '$env/static/public';
-
+  import { isMatchPredictable } from '$lib/stages';
+  import { matchParticipant } from '$lib/match-participants';
+  import TeamFlag from '$lib/components/TeamFlag.svelte';
+  import type { Prediction } from '$lib';
   export let data: PageData;
   export let form: ActionData;
 
@@ -14,7 +16,7 @@
   let carouselLength = data?.predictableMatches.length;
   let groupFilter = '';
   let uniqueGroups = new Set(data?.predictions.map((p) => p.group));
-  let matches: any[] = [];
+  let matches: Prediction[] = [];
 
   function navigate(direction: number) {
     currentIndex += direction;
@@ -62,7 +64,7 @@
         class="card h-full relative carousel carousel-center m-4 p-4 glass border-inherit shadow-lg rounded-xl"
       >
         {#each predictableMatches as match, index}
-          {#if new Date() <= new Date(match.predictable_until)}
+          {#if isMatchPredictable(match)}
             <form
               class={`card-content carousel-item ${index === currentIndex ? 'block' : 'hidden'}`}
               method="POST"
@@ -91,21 +93,20 @@
 
                 <input type="hidden" name="match_id" value={match.match_id} />
                 <div class="card-title text-accent-content text-2xl justify-center">
-                  <Time timestamp={match?.date} format="DD.MM.YYYY" />
-                  {' '}{match?.time}
+                  <Time timestamp={match?.starts_at} format="DD.MM.YYYY HH:mm" />
                 </div>
 
                 <div class="flex justify-between mt-4 px-4">
                   <div class="text-center font-bold w-1/2 py-4">
                     <div class="flag-container">
-                      <img
-                        class="flag rounded-btn"
-                        src={`../flags/${match.home.country_code}.svg`}
-                        alt="{match.home.name} flag"
+                      <TeamFlag
+                        countryCode={matchParticipant(match, 'home').country_code}
+                        name={matchParticipant(match, 'home').name}
+                        class="flag rounded-btn object-cover"
                       />
                     </div>
                     <label class="block text-sm mt-5">
-                      {match.home.name}
+                      {matchParticipant(match, 'home').name}
                       <input
                         class="input input-bordered w-full"
                         id="home_goals"
@@ -114,21 +115,21 @@
                         pattern="[0-9]*"
                         type="number"
                         min="0"
-                        value={form?.home_goals}
+                        value={form?.home_goals ?? ''}
                       />
                     </label>
                   </div>
 
                   <div class="text-center font-bold w-1/2 py-4">
                     <div class="flag-container">
-                      <img
-                        class="flag rounded-btn"
-                        src={`../flags/${match.away.country_code}.svg`}
-                        alt="{match.away.name} flag"
+                      <TeamFlag
+                        countryCode={matchParticipant(match, 'away').country_code}
+                        name={matchParticipant(match, 'away').name}
+                        class="flag rounded-btn object-cover"
                       />
                     </div>
                     <label class="block text-sm mt-5">
-                      {match.away.name}
+                      {matchParticipant(match, 'away').name}
                       <input
                         class="input input-bordered w-full"
                         id="away_goals"
@@ -137,7 +138,7 @@
                         pattern="[0-9]*"
                         type="number"
                         min="0"
-                        value={form?.away_goals}
+                        value={form?.away_goals ?? ''}
                       />
                     </label>
                   </div>
@@ -149,9 +150,9 @@
                   >
                 </div>
               </div>
-              {#if form?.error}
+              {#if form?.message && !form?.success}
                 <div class="text-center mt-4 px-4">
-                  <div class="btn btn-error w-full">{form.error.message}</div>
+                  <div class="btn btn-error w-full">{form.message}</div>
                 </div>
               {/if}
             </form>
@@ -173,10 +174,10 @@
         </div>
       </div>
 
-      {#if new Date() < new Date(PUBLIC_START_DATE)}
+      {#if data.tournamentStartsAt && new Date() < new Date(data.tournamentStartsAt)}
         <div class="text-center mt-4 px-4">
           Alkusarjan otteluiden arvausaika päättyy <Time
-            timestamp={predictableMatches[0]?.predictable_until}
+            timestamp={data.tournamentStartsAt}
             format="DD.MM.YYYY kello HH:mm"
           />.
         </div>
@@ -209,39 +210,26 @@
           </div>
         {/if}
         {#each matches as prediction}
-          <form
-            class="card-content my-4"
-            method="POST"
-            action="?/update"
-            use:enhance={() => {
-              loading = true;
-              return async ({ result }) => {
-                console.log(result);
-                loading = false;
-              };
-            }}
-          >
+          <div class="card-content my-4">
             <div class="form-control">
-              <input type="hidden" name="guess_id" value={prediction.guess_id} />
               <div class="card-title text-accent-content text-2xl justify-center">
-                <Time timestamp={prediction.match?.date} format="DD.MM.YYYY" />
-                {' '}{prediction.match?.time}
+                <Time timestamp={prediction.match?.starts_at} format="DD.MM.YYYY HH:mm" />
               </div>
 
               <div class="flex justify-between mt-4 px-4">
                 <div class="text-center font-bold w-1/2">
                   <div class="flag-container">
-                    <img
-                      class="flag rounded-btn"
-                      src={`../flags/${prediction.match.home.country_code}.svg`}
-                      alt="{prediction.match.home.name} flag"
+                    <TeamFlag
+                      countryCode={matchParticipant(prediction.match, 'home').country_code}
+                      name={matchParticipant(prediction.match, 'home').name}
+                      class="flag rounded-btn object-cover"
                     />
                   </div>
                   <label class="block text-sm mt-5">
-                    {prediction.match.home.name}
+                    {matchParticipant(prediction.match, 'home').name}
                     <input
                       class="input input-bordered w-full"
-                      id="home_goals"
+                      form="update-{prediction.guess_id}"
                       name="home_goals"
                       placeholder="Kotijoukkueen maalit"
                       pattern="[0-9]*"
@@ -254,17 +242,17 @@
 
                 <div class="text-center font-bold w-1/2">
                   <div class="flag-container">
-                    <img
-                      class="flag rounded-btn"
-                      src={`../flags/${prediction.match.away.country_code}.svg`}
-                      alt="{prediction.match.away.name} flag"
+                    <TeamFlag
+                      countryCode={matchParticipant(prediction.match, 'away').country_code}
+                      name={matchParticipant(prediction.match, 'away').name}
+                      class="flag rounded-btn object-cover"
                     />
                   </div>
                   <label class="block text-sm mt-5">
-                    {prediction.match.away.name}
+                    {matchParticipant(prediction.match, 'away').name}
                     <input
                       class="input input-bordered w-full"
-                      id="away_goals"
+                      form="update-{prediction.guess_id}"
                       name="away_goals"
                       placeholder="Vierasjoukkueen maalit"
                       pattern="[0-9]*"
@@ -283,37 +271,49 @@
                   action="?/delete"
                   use:enhance={() => {
                     loading = true;
-                    return async ({ result, update }) => {
+                    return async ({ update }) => {
                       update();
-                      console.log(result);
                       loading = false;
                       matches = matches.filter((p) => p.guess_id !== prediction.guess_id);
                     };
                   }}
                 >
+                  <input type="hidden" name="guess_id" value={prediction.guess_id} />
                   <button
                     class="w-full btn btn-error"
                     type="submit"
-                    disabled={new Date(prediction.match.predictable_until) <= new Date()}
-                    >POISTA</button
+                    disabled={!isMatchPredictable(prediction.match)}>POISTA</button
                   >
-                  <input type="hidden" name="guess_id" value={prediction.guess_id} />
                 </form>
-                <button
-                  class="w-1/3 btn btn-primary"
-                  class:loading
-                  type="submit"
-                  disabled={new Date(prediction.match.predictable_until) <= new Date()}
-                  >TALLENNA</button
+                <form
+                  id="update-{prediction.guess_id}"
+                  class="w-2/3"
+                  method="POST"
+                  action="?/update"
+                  use:enhance={() => {
+                    loading = true;
+                    return async ({ update }) => {
+                      update();
+                      loading = false;
+                    };
+                  }}
                 >
+                  <input type="hidden" name="guess_id" value={prediction.guess_id} />
+                  <button
+                    class="w-full btn btn-primary"
+                    class:loading
+                    type="submit"
+                    disabled={!isMatchPredictable(prediction.match)}>TALLENNA</button
+                  >
+                </form>
               </div>
             </div>
-            {#if form?.error}
+            {#if form?.message && !form?.success}
               <div class="text-center mt-4 px-4">
-                <div class="btn btn-error w-full">{form.error.message}</div>
+                <div class="btn btn-error w-full">{form.message}</div>
               </div>
             {/if}
-          </form>
+          </div>
           <div class="divider divider-neutral" />
         {/each}
       </ul>

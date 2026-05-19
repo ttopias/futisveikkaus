@@ -1,13 +1,13 @@
 <script lang="ts">
   import Time from 'svelte-time';
-  export let row: any;
+  export let row: Record<string, unknown>;
   export let field: string;
   export let format: string;
-  export let col: any;
+  export let col: Record<string, unknown> | undefined;
 </script>
 
 {#if col}
   <div>
-    <Time timestamp={row[field]} {format} />
+    <Time timestamp={String(row[field] ?? '')} {format} />
   </div>
 {/if}

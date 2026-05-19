@@ -10,7 +10,7 @@
   const button = getContext('button');
   const basic = getContext('basic');
 
-  let rest: any = getContext('rest');
+  let rest = getContext<Record<string, unknown>>('rest');
 
   const modalClass = rest.class;
   delete rest.class;

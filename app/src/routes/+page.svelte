@@ -1,26 +1,36 @@
 <script lang="ts">
-  import { PUBLIC_START_DATE } from '$env/static/public';
+  import type { PageData } from './$types';
   import { rules } from '$lib/utils';
   import SvelteTable from 'svelte-table';
   import { onMount, onDestroy } from 'svelte';
+
+  export let data: PageData;
 
   type Rule = {
     rule: string;
     points: string;
   };
 
-  let countDownDate = new Date(PUBLIC_START_DATE).getTime();
+  $: tournamentStart = data.tournamentStartsAt ? new Date(data.tournamentStartsAt) : null;
+  $: showCountdown = tournamentStart != null && tournamentStart > new Date();
+  $: countDownDate = tournamentStart?.getTime() ?? 0;
 
-  let days: number, hours: number, minutes: number, seconds: number, timeLeft: number;
+  let days = 0,
+    hours = 0,
+    minutes = 0,
+    seconds = 0,
+    timeLeft = 0;
 
   $: days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
   $: hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
   $: minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
   $: seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
 
-  let interval: any;
+  let interval: ReturnType<typeof setInterval> | undefined;
 
   onMount(() => {
+    if (!showCountdown) return;
+
     interval = setInterval(() => {
       const now = new Date().getTime();
       timeLeft = countDownDate - now;
@@ -53,7 +63,7 @@
 </script>
 
 <div class="m-4 p-4 items-center text-center pt-8">
-  {#if new Date(PUBLIC_START_DATE) > new Date()}
+  {#if showCountdown}
     <div class="mb-8 p-4">
       <div class="text-4xl font-bold">KISOJEN ALKUUN</div>
       <div class="justify-center grid grid-flow-col gap-5 text-center auto-cols-max pt-4">

@@ -65,7 +65,7 @@
           type="text"
           id="first_name"
           name="first_name"
-          value={form?.first_name ?? data?.user?.user_metadata?.first_name ?? ''}
+          value={form?.first_name ?? data?.profile?.first_name ?? ''}
           placeholder="Etunimi"
           class="input grow text-xl"
         />

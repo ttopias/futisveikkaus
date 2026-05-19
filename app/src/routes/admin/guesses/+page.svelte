@@ -1,58 +1,58 @@
 <script lang="ts">
   import type { PageData } from './$types';
+  import type { Prediction } from '$lib';
   import SvelteTable from 'svelte-table';
-
   export let data: PageData;
-  let guesses: any[] = data.guesses;
+  let guesses: Prediction[] = data.guesses;
 
   let userFilter = '';
-  let uniqueUsers = new Set(guesses.map((guess) => guess.user.first_name));
+  let uniqueUsers = new Set(guesses.map((guess) => guess.profile?.first_name ?? ''));
 
   $: filteredGuesses = userFilter
-    ? guesses.filter((guess) => guess.user.first_name === userFilter)
+    ? guesses.filter((guess) => guess.profile?.first_name === userFilter)
     : guesses;
 
   let columns = [
     {
       key: 'user',
       title: 'Käyttäjä',
-      value: (r: any) => r.user.first_name,
+      value: (r: Prediction) => r.profile?.first_name ?? '',
       sortable: true,
     },
     {
-      key: 'date',
+      key: 'starts_at',
       title: 'PVM',
-      value: (r: any) => r.match.date,
+      value: (r: Prediction) => r.match.starts_at,
       sortable: true,
     },
     {
       key: 'match',
       title: 'Ottelu',
-      value: (r: any) => `${r.match.home.name} - ${r.match.away.name}`,
+      value: (r: Prediction) => `${r.match.home?.name ?? ''} - ${r.match.away?.name ?? ''}`,
       sortable: true,
     },
     {
       key: 'prediction',
       title: 'Arvaus',
-      value: (r: any) => `${r.home_goals} - ${r.away_goals}`,
+      value: (r: Prediction) => `${r.home_goals} - ${r.away_goals}`,
       sortable: true,
     },
     {
       key: 'result',
       title: 'Lopputulos',
-      value: (r: any) => `${r.match.home_goals} - ${r.match.away_goals}`,
+      value: (r: Prediction) => `${r.match.home_goals} - ${r.match.away_goals}`,
       sortable: true,
     },
     {
       key: 'points',
       title: 'Pisteet',
-      value: (r: any) => r.points,
+      value: (r: Prediction) => r.points,
       sortable: true,
     },
     {
       key: 'points_calculated',
       title: 'Calculated',
-      value: (r: any) => (r.points_calculated ? 'X' : ''),
+      value: (r: Prediction) => (r.points_calculated ? 'X' : ''),
       sortable: true,
     },
   ];

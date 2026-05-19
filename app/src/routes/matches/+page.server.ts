@@ -1,39 +1,48 @@
+import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import type { Match } from '$lib/index';
-import { addGroupStageDetails, sortByDateTime } from '$lib/utils';
+import { fetchVisibleMatchStage, filterMatchesByVisibleStage } from '$lib/tournament-stage';
+import { MATCH_PARTICIPANT_SELECT } from '$lib/match-participants';
+import { enrichMatchesWithStageDisplay } from '$lib/stages';
+import { sortByDateTime } from '$lib/utils';
 
 export const load: PageServerLoad = async ({ locals: { supabase } }) => {
   let matches: Match[] = [];
+  let visibleMatchStage;
+
+  try {
+    visibleMatchStage = await fetchVisibleMatchStage(supabase);
+  } catch (e) {
+    error(500, e instanceof Error ? e.message : 'Failed to load tournament stage');
+  }
 
   const res = await supabase
     .from('matches')
     .select(
       `
     match_id,
-    date,
-    time,
-    home:home_id (team_id, country_code, name, group, win, draw, loss, gf, gaa),
-    away:away_id (team_id, country_code, name, group, win, draw, loss, gf, gaa),
+    stage,
+    starts_at,
+    ${MATCH_PARTICIPANT_SELECT},
     home_goals,
     away_goals,
     finished
   `,
     )
-    .order('date', { ascending: true });
+    .eq('stage', visibleMatchStage)
+    .order('starts_at', { ascending: true });
 
   if (res.error) {
-    return {
-      status: 500,
-      error: res.error.message,
-    };
+    error(500, res.error.message);
   }
 
   if (!res.data || (Array.isArray(res.data) && res.data.length === 0)) {
-    return { matches: matches };
+    return { matches, visibleMatchStage };
   }
 
   matches = res.data as unknown as Match[];
-  matches = sortByDateTime(addGroupStageDetails(matches));
+  matches = filterMatchesByVisibleStage(matches, visibleMatchStage);
+  matches = sortByDateTime(enrichMatchesWithStageDisplay(matches));
 
-  return { matches };
+  return { matches, visibleMatchStage };
 };

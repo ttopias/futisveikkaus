@@ -1,21 +1,33 @@
 import type { Actions, PageServerLoad } from './$types';
 import { error, fail } from '@sveltejs/kit';
 import { supabaseAdminClient } from '$lib/server/supabaseAdminClient';
-import type { User } from '@supabase/supabase-js';
+import { requireAdmin } from '$lib/server/requireAdmin';
+import { fetchVisibleMatchStage } from '$lib/tournament-stage';
+import { MATCH_PARTICIPANT_SELECT } from '$lib/match-participants';
+import { enrichPredictionsWithStageDisplay } from '$lib/stages';
 import { sortPredsByDateTime } from '$lib/utils';
 import type { Prediction } from '$lib';
 
-export const load: PageServerLoad = async ({ locals: { supabase } }) => {
-  let res = await supabase.from('guesses').select(
+export const load: PageServerLoad = async ({ locals: { safeGetSession } }) => {
+  const { user } = await safeGetSession();
+  requireAdmin(user);
+
+  let visibleMatchStage;
+  try {
+    visibleMatchStage = await fetchVisibleMatchStage(supabaseAdminClient);
+  } catch (e) {
+    error(500, e instanceof Error ? e.message : 'Failed to load tournament stage');
+  }
+
+  const res = await supabaseAdminClient.from('guesses').select(
     `
     guess_id,
-    user:user_id (id, first_name),
+    profile:user_id (id, first_name),
     match:match_id (
       match_id,
-      date,
-      time,
-      home:home_id (team_id, country_code, name, group, win, draw, loss, gf, gaa),
-      away:away_id (team_id, country_code, name, group, win, draw, loss, gf, gaa),
+      stage,
+      starts_at,
+      ${MATCH_PARTICIPANT_SELECT},
       home_goals,
       away_goals,
       finished
@@ -31,13 +43,19 @@ export const load: PageServerLoad = async ({ locals: { supabase } }) => {
     error(500, res.error.message);
   }
 
-  let guesses = sortPredsByDateTime(res.data as unknown as Prediction[]);
+  let guesses = sortPredsByDateTime(
+    enrichPredictionsWithStageDisplay(res.data as unknown as Prediction[]),
+  );
+  guesses = guesses.filter((g) => g.match.stage === visibleMatchStage);
 
-  return { guesses };
+  return { guesses, visibleMatchStage };
 };
 
 export const actions: Actions = {
-  create: async ({ request, locals: { supabase } }) => {
+  create: async ({ request, locals: { safeGetSession } }) => {
+    const { user } = await safeGetSession();
+    requireAdmin(user);
+
     const form_data = await request.formData();
     const match_id = form_data.get('match_id')?.toString();
     const user_id = form_data.get('user_id')?.toString();
@@ -61,7 +79,7 @@ export const actions: Actions = {
       });
     }
 
-    const res = await supabase.from('guesses').insert({
+    const res = await supabaseAdminClient.from('guesses').insert({
       match_id,
       user_id,
       home_goals,
@@ -90,7 +108,10 @@ export const actions: Actions = {
     };
   },
 
-  update: async ({ request, locals: { supabase } }) => {
+  update: async ({ request, locals: { safeGetSession } }) => {
+    const { user } = await safeGetSession();
+    requireAdmin(user);
+
     const form_data = await request.formData();
     const guess_id = form_data.get('guess_id')?.toString();
     const match_id = form_data.get('match_id')?.toString();
@@ -124,7 +145,7 @@ export const actions: Actions = {
       });
     }
 
-    const res = await supabase
+    const res = await supabaseAdminClient
       .from('guesses')
       .update({
         match_id,
@@ -157,7 +178,10 @@ export const actions: Actions = {
     };
   },
 
-  delete: async ({ request, locals: { supabase } }) => {
+  delete: async ({ request, locals: { safeGetSession } }) => {
+    const { user } = await safeGetSession();
+    requireAdmin(user);
+
     const form_data = await request.formData();
     const guess_id = form_data.get('guess_id')?.toString();
 
@@ -169,7 +193,7 @@ export const actions: Actions = {
       });
     }
 
-    const res = await supabase.from('guesses').delete().match({ guess_id });
+    const res = await supabaseAdminClient.from('guesses').delete().match({ guess_id });
 
     if (res.error) {
       return fail(400, { error: res.error.message, failure: true, values: { guess_id } });

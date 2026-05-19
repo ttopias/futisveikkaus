@@ -1,6 +1,7 @@
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import type { Prediction, User } from '$lib/index';
+import { MATCH_PARTICIPANT_SELECT } from '$lib/match-participants';
 import { groupByUser, sortPredsByDateTime, transformDataForChart } from '$lib/utils';
 
 export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession } }) => {
@@ -26,13 +27,12 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
   const sec_res = await supabase.from('guesses').select(
     `
     guess_id,
-    user:user_id (id, first_name),
+    profile:user_id (id, first_name),
     match:match_id (
       match_id,
-      date,
-      time,
-      home:home_id (team_id, country_code, name, group, win, draw, loss, gf, gaa),
-      away:away_id (team_id, country_code, name, group, win, draw, loss, gf, gaa),
+      stage,
+      starts_at,
+      ${MATCH_PARTICIPANT_SELECT},
       home_goals,
       away_goals,
       finished
@@ -45,8 +45,7 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
   );
 
   if (sec_res.error) {
-    // console.error('Error fetching data @standings:', sec_res.error.message);
-    return { standings, predictions };
+    return { standings, predictions: [], chartData: [] };
   }
   predictions = sortPredsByDateTime(sec_res.data as unknown as Prediction[]).filter(
     (p) => p.points_calculated,
@@ -54,8 +53,6 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
 
   const groupedPredictions = groupByUser(predictions);
   const chartData = transformDataForChart(groupedPredictions);
-
-  // chartData.map((x) => console.log(x));
 
   return { standings, chartData };
 };

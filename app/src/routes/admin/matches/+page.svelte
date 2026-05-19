@@ -2,6 +2,8 @@
   import { enhance } from '$app/forms';
   import { Content, Modal, Trigger } from '$lib/index';
   import type { Match, Team } from '$lib/index';
+  import { matchParticipant } from '$lib/match-participants';
+  import TeamFlag from '$lib/components/TeamFlag.svelte';
   import type { ActionData, PageData } from './$types';
 
   export let data: PageData;
@@ -10,6 +12,14 @@
   let teams: Team[] = data?.teams ?? [];
 
   let loading = false;
+
+  function toDatetimeLocal(iso?: string | null) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '';
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
 </script>
 
 <Modal small>
@@ -20,7 +30,7 @@
       action="?/create"
       use:enhance={() => {
         loading = true;
-        return async ({ result, update }) => {
+        return async ({ update }) => {
           update();
           loading = false;
         };
@@ -28,38 +38,15 @@
     >
       <div class="form-control">
         <label class="input input-bordered flex items-center gap-2">
-          Predictable until
+          Kickoff
           <input
-            id="predictable_until"
+            id="starts_at"
             class="grow"
-            name="predictable_until"
-            placeholder="Predictable until"
+            name="starts_at"
+            placeholder="Kickoff"
             type="datetime-local"
-            value={form?.predictable_until ?? ''}
-          />
-        </label>
-
-        <label class="input input-bordered flex items-center gap-2">
-          Date
-          <input
-            class="grow"
-            id="date"
-            name="date"
-            placeholder="Date"
-            type="date"
-            value={form?.date ?? ''}
-          />
-        </label>
-
-        <label class="input input-bordered flex items-center gap-2">
-          Time
-          <input
-            class="grow"
-            id="time"
-            name="time"
-            placeholder="Time"
-            type="time"
-            value={form?.time ?? ''}
+            value={toDatetimeLocal(form?.starts_at) ?? ''}
+            required
           />
         </label>
 
@@ -121,16 +108,18 @@
           {/if}
         </div>
         <div class="text-lg font-semibold mb-2">
-          {match.date} - {match.time}
+          {new Date(match.starts_at).toLocaleString('fi-FI')}
         </div>
         <div class="flex justify-between items-center mb-4">
           <div class="flex items-center gap-2">
-            <img
-              class="h-8 w-8 rounded-full"
-              src={`../flags/${match.home.country_code}.svg`}
-              alt="{match.home.name} flag"
+            <TeamFlag
+              countryCode={matchParticipant(match, 'home').country_code}
+              name={matchParticipant(match, 'home').name}
+              width={32}
+              height={32}
+              class="h-8 w-8 rounded-full object-cover"
             />
-            <span>{match.home.name}</span>
+            <span>{matchParticipant(match, 'home').name}</span>
           </div>
 
           <div class="text-bold text-lg">
@@ -141,11 +130,13 @@
             {/if}
           </div>
           <div class="flex items-center gap-2">
-            <span>{match.away.name}</span>
-            <img
-              class="h-8 w-8 rounded-full"
-              src={`../flags/${match.away.country_code}.svg`}
-              alt="{match.away.name} flag"
+            <span>{matchParticipant(match, 'away').name}</span>
+            <TeamFlag
+              countryCode={matchParticipant(match, 'away').country_code}
+              name={matchParticipant(match, 'away').name}
+              width={32}
+              height={32}
+              class="h-8 w-8 rounded-full object-cover"
             />
           </div>
         </div>
@@ -157,9 +148,8 @@
                 action="?/update"
                 use:enhance={() => {
                   loading = true;
-                  return async ({ result, update }) => {
+                  return async ({ update }) => {
                     update();
-                    console.log(result);
                     loading = false;
                   };
                 }}
@@ -167,38 +157,14 @@
                 <div class="form-control mt-5">
                   <input type="hidden" name="match_id" value={match.match_id} />
                   <label class="input input-bordered flex items-center gap-2">
-                    Predictable until
+                    Kickoff
                     <input
-                      id="predictable_until"
+                      id="starts_at"
                       class="grow"
-                      name="predictable_until"
-                      placeholder="Predictable until"
+                      name="starts_at"
+                      placeholder="Kickoff"
                       type="datetime-local"
-                      value={form?.predictable_until ?? match?.predictable_until}
-                    />
-                  </label>
-
-                  <label class="input input-bordered flex items-center gap-2">
-                    Date
-                    <input
-                      id="date"
-                      class="grow"
-                      name="date"
-                      placeholder="Date"
-                      type="date"
-                      value={form?.date ?? match?.date}
-                    />
-                  </label>
-
-                  <label class="input input-bordered flex items-center gap-2">
-                    Time
-                    <input
-                      class="grow"
-                      id="time"
-                      name="time"
-                      placeholder="Time"
-                      type="time"
-                      value={form?.time ?? match?.time}
+                      value={toDatetimeLocal(form?.starts_at ?? match?.starts_at)}
                     />
                   </label>
 
@@ -253,7 +219,7 @@
             action="?/delete"
             use:enhance={() => {
               loading = true;
-              return async ({ result, update }) => {
+              return async ({ update }) => {
                 update();
                 loading = false;
               };

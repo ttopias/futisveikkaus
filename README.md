@@ -18,8 +18,11 @@ Project was put together fairly quickly and completely for my own purposes: I wa
 
 - Clone the repository
 - Setup Supabase project
-- Run SQL scripts in the Supabase's PostgreSQL CLI, `/sql/tables.sql` -> `/sql/functions.sql` -> `/sql/triggers.sql`
-- Fill in the `/app/.env` with the needed fields in `/app/.env.example`
+- Run `node scripts/init-database.mjs --env app/.env.local` (wipes app schema via `sql/reset.sql`, then applies `sql/tables.sql` -> `functions.sql` -> `triggers.sql` -> `policies.sql`; see `scripts/README.md`)
+- Row Level Security is enabled on app tables; normal users access data through policies. Admin scripts and server routes uses `SUPABASE_SECRET_KEY` (service role), which bypasses RLS.
+- Copy `app/.env.example` to `app/.env.local` and configure:
+  - **App + scrape `--write`:** Dashboard -> **Project Settings** -> **API** -> **API Keys** - `PUBLIC_SUPABASE_URL`, `PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`
+  - **Init script:** Dashboard -> **Project Settings** -> **Database** -> **Connection string** -> **URI** - `DATABASE_URL` (Postgres URI with database password). API keys alone cannot run DDL; see `scripts/README.md`
 - Host the app somewhere
 - Link it to your friends
 

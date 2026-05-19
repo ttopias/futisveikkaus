@@ -2,10 +2,10 @@
   import { page } from '$app/stores';
   import { logo } from '$lib/stores';
   import { PUBLIC_APP_NAME } from '$env/static/public';
-  import { isAdmin } from '$lib/utils';
+  import { getUserRole, isAdmin } from '$lib/utils';
   import { LogOutIcon, UserIcon } from 'svelte-feather-icons';
 
-  const role: string = $page.data.user?.user_metadata?.role || '';
+  const role: string = getUserRole($page.data.user);
   let isMenuOpen = false;
 </script>
 
