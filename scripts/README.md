@@ -1,5 +1,15 @@
 # Scripts
 
+## `make init`
+
+Fresh database + tournament data + FIFA ranks (uses `app/.env.local`):
+
+1. `init-database.mjs --write` — schema
+2. `scrape-wikipedia.mjs --write` — teams & matches
+3. `scrape-fifa-rankings.mjs --write` — `teams.fifa_rank`
+
+Dry-run preview (no DB writes): run each script with `--dry-run` in the same order.
+
 ## Database (Postgres DDL)
 
 `init-database.mjs` runs `sql/reset.sql` (wipe app schema) then `tables.sql` -> `functions.sql` -> `triggers.sql` -> `policies.sql`. Preserves `auth.users`. Destructive for existing app data; safe on an empty database.
@@ -45,7 +55,7 @@ Scripts validate common mistakes before connecting.
 | [EN Wikipedia](https://en.wikipedia.org/wiki/2026_FIFA_World_Cup) | Groups, knockout bracket (`Winner Match 74`, etc.) |
 | [101languages](https://www.101languages.net/finnish/country-names-finnish/) | English -> Finnish team names (fetched at runtime) |
 
-Inline overrides in the script: `CSV_TO_ENGLISH`, `FINNISH_NAME_OVERRIDES`.
+Inline overrides in `scripts/lib/team-names.mjs`: `NAME_TO_ENGLISH`, `FINNISH_NAME_OVERRIDES`.
 
 Adapts to whatever the fixture CSV contains (no fixed match count). Logs stage breakdown; warns on skipped rows (bad dates, unresolved names, missing KO slots). Exits only on fatal errors (network, empty fixtures, no teams, no matches after merge).
 
@@ -78,6 +88,19 @@ node scripts/scrape-wikipedia.mjs --write --env app/.env.local
 ```
 
 `--write` needs `PUBLIC_SUPABASE_URL` and `SUPABASE_SECRET_KEY` (after `init-database`).
+
+---
+
+## FIFA rankings (`scrape-fifa-rankings.mjs`)
+
+Fetches the current men's FIFA world ranking from [FIFA API](https://api.fifa.com/api/v3/rankings?gender=1), maps English country names to Finnish `teams.name` via the same 101languages / override pipeline as `scrape-wikipedia.mjs` (`scripts/lib/team-names.mjs`), and writes `teams.fifa_rank`. Run after teams exist in the database; re-run when rankings update.
+
+```bash
+node scripts/scrape-fifa-rankings.mjs --dry-run --env app/.env.local
+node scripts/scrape-fifa-rankings.mjs --write --env app/.env.local
+```
+
+`--write` needs `PUBLIC_SUPABASE_URL` and `SUPABASE_SECRET_KEY`. Unmapped tournament teams are logged as warnings.
 
 ---
 

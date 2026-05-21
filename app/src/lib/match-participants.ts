@@ -52,16 +52,16 @@ export function enrichMatchesWithParticipants(matches: Match[]): Match[] {
 export const MATCH_PARTICIPANT_SELECT = `
   home_slot,
   away_slot,
-  home:home_id (team_id, country_code, name, group, win, draw, loss, gf, gaa),
-  away:away_id (team_id, country_code, name, group, win, draw, loss, gf, gaa)
+  home:home_id (team_id, country_code, name, fifa_rank, group, win, draw, loss, gf, gaa),
+  away:away_id (team_id, country_code, name, fifa_rank, group, win, draw, loss, gf, gaa)
 `;
 
 /** Display-only participant fields (flags + names + group for stage labels). */
 export const MATCH_PARTICIPANT_DISPLAY_SELECT = `
   home_slot,
   away_slot,
-  home:home_id (team_id, country_code, name, group),
-  away:away_id (team_id, country_code, name, group)
+  home:home_id (team_id, country_code, name, fifa_rank, group),
+  away:away_id (team_id, country_code, name, fifa_rank, group)
 `;
 
 export function isPlaceholderFlag(countryCode: string | null | undefined): boolean {

@@ -14,6 +14,7 @@ CREATE TABLE teams (
     team_id serial PRIMARY KEY,
     country_code text NOT NULL,
     name text NOT NULL,
+    fifa_rank int,
     "group" text NOT NULL,
     win int DEFAULT 0 NOT NULL,
     draw int DEFAULT 0 NOT NULL,
@@ -72,6 +73,7 @@ CREATE TABLE dashboard (
 
 -- Indexes
 CREATE UNIQUE INDEX idx_teams_name ON teams(name);
+CREATE INDEX idx_teams_fifa_rank ON teams(fifa_rank) WHERE fifa_rank IS NOT NULL;
 CREATE INDEX idx_teams_team_id ON teams(team_id);
 CREATE INDEX idx_matches_match_id ON matches(match_id);
 CREATE INDEX idx_matches_match_number ON matches(match_number);

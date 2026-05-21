@@ -9,6 +9,7 @@
   import { Input } from '$lib/components/ui/input';
   import { Label } from '$lib/components/ui/label';
   import { Alert } from '$lib/components/ui/alert';
+  import { Badge } from '$lib/components/ui/badge';
   import * as Card from '$lib/components/ui/card';
   import * as Carousel from '$lib/components/ui/carousel';
   import { onDestroy } from 'svelte';
@@ -93,8 +94,13 @@
                     name={matchParticipant(match, 'home').name}
                     class="h-16 w-auto max-w-full rounded-md"
                   />
-                  <Label class="w-full text-xs" for="home_goals-{match.match_id}">
-                    {matchParticipant(match, 'home').name}
+                  <Label class="flex w-full flex-wrap items-center justify-center gap-1 text-xs" for="home_goals-{match.match_id}">
+                    <span>{matchParticipant(match, 'home').name}</span>
+                    {#if matchParticipant(match, 'home').fifa_rank}
+                      <Badge variant="secondary" class="px-1.5 py-0 text-[10px] tabular-nums">
+                        #{matchParticipant(match, 'home').fifa_rank}
+                      </Badge>
+                    {/if}
                   </Label>
                   <Input
                     id="home_goals-{match.match_id}"
@@ -114,8 +120,13 @@
                     name={matchParticipant(match, 'away').name}
                     class="h-16 w-auto max-w-full rounded-md"
                   />
-                  <Label class="w-full text-xs" for="away_goals-{match.match_id}">
-                    {matchParticipant(match, 'away').name}
+                  <Label class="flex w-full flex-wrap items-center justify-center gap-1 text-xs" for="away_goals-{match.match_id}">
+                    <span>{matchParticipant(match, 'away').name}</span>
+                    {#if matchParticipant(match, 'away').fifa_rank}
+                      <Badge variant="secondary" class="px-1.5 py-0 text-[10px] tabular-nums">
+                        #{matchParticipant(match, 'away').fifa_rank}
+                      </Badge>
+                    {/if}
                   </Label>
                   <Input
                     id="away_goals-{match.match_id}"

@@ -10,6 +10,7 @@
   import Users from 'lucide-svelte/icons/users';
   import Target from 'lucide-svelte/icons/target';
   import Trophy from 'lucide-svelte/icons/trophy';
+  import BarChart3 from 'lucide-svelte/icons/bar-chart-3';
   import Shield from 'lucide-svelte/icons/shield';
   import LogIn from 'lucide-svelte/icons/log-in';
   import LogOut from 'lucide-svelte/icons/log-out';
@@ -46,6 +47,12 @@
       label: 'Joukkueet',
       icon: Users,
       match: (p) => p === '/teams' || p.startsWith('/teams/'),
+    },
+    {
+      href: '/fifa-ranking',
+      label: 'FIFA-ranking',
+      icon: BarChart3,
+      match: (p) => p === '/fifa-ranking',
     },
   ];
 

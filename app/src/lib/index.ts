@@ -47,6 +47,7 @@ export type Team = {
   team_id: number;
   country_code: string;
   name: string;
+  fifa_rank?: number | null;
   group: string;
   win: number;
   draw: number;

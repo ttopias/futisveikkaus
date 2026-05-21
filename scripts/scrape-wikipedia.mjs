@@ -12,6 +12,14 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
 import { loadEnvFiles } from './lib/db-env.mjs';
+import {
+  HEADERS,
+  canonicalize,
+  fetchEnglishToFinnish,
+  isoByFinnish,
+  isoCode,
+  toFinnish,
+} from './lib/team-names.mjs';
 import { parseSlot } from '../lib/slots.mjs';
 import { BRACKET_SLOTS } from './bracket-slots.mjs';
 
@@ -23,123 +31,9 @@ const cheerio = require('cheerio');
 const { createClient } = require('@supabase/supabase-js');
 
 const WIKI_URL = 'https://en.wikipedia.org/wiki/2026_FIFA_World_Cup';
-const COUNTRY_NAMES_FI_URL = 'https://www.101languages.net/finnish/country-names-finnish/';
 const FIXTURE_CSV_URL = 'https://fixturedownload.com/download/fifa-world-cup-2026-UTC.csv';
-const HEADERS = { 'User-Agent': 'Mozilla/5.0 (compatible; FutisveikkausScraper/1.0)' };
 const GROUPS = 'ABCDEFGHIJKL'.split('');
 const STAGE_ORDER = ['group', 'r32', 'r16', 'qf', 'sf', 'third', 'final'];
-
-const CSV_TO_ENGLISH = {
-  'Korea Republic': 'South Korea',
-  USA: 'United States',
-  'Cabo Verde': 'Cape Verde',
-  'IR Iran': 'Iran',
-  Türkiye: 'Turkey',
-  Czechia: 'Czech Republic',
-  "Côte d'Ivoire": 'Ivory Coast',
-  'Congo DR': 'DR Congo',
-};
-
-const FINNISH_NAME_OVERRIDES = {
-  'United States': 'Yhdysvallat',
-  'DR Congo': 'Kongo',
-  'Ivory Coast': 'Norsunluurannikko',
-  "Cote d'Ivoire": 'Norsunluurannikko',
-  Czechia: 'Tšekki',
-  'China PR': 'Kiina',
-  England: 'Englanti',
-  Scotland: 'Skotlanti',
-  Wales: 'Wales',
-  'Republic of Congo': 'Kongo',
-  Curaçao: 'Curaçao',
-};
-
-const ISO_CODE_MAP = {
-  Mexico: 'mx',
-  'United States': 'us',
-  Canada: 'ca',
-  'Bosnia and Herzegovina': 'ba',
-  Argentina: 'ar',
-  Brazil: 'br',
-  France: 'fr',
-  England: 'gb-eng',
-  Germany: 'de',
-  Spain: 'es',
-  Portugal: 'pt',
-  Netherlands: 'nl',
-  Belgium: 'be',
-  Italy: 'it',
-  Uruguay: 'uy',
-  Colombia: 'co',
-  Ecuador: 'ec',
-  Peru: 'pe',
-  Chile: 'cl',
-  Paraguay: 'py',
-  Bolivia: 'bo',
-  Venezuela: 've',
-  Japan: 'jp',
-  'South Korea': 'kr',
-  Australia: 'au',
-  Iran: 'ir',
-  'Saudi Arabia': 'sa',
-  Qatar: 'qa',
-  Uzbekistan: 'uz',
-  Indonesia: 'id',
-  'South Africa': 'za',
-  Senegal: 'sn',
-  Morocco: 'ma',
-  Egypt: 'eg',
-  Nigeria: 'ng',
-  Ghana: 'gh',
-  Cameroon: 'cm',
-  Tunisia: 'tn',
-  Algeria: 'dz',
-  Mali: 'ml',
-  'Ivory Coast': 'ci',
-  "Côte d'Ivoire": 'ci',
-  'Congo DR': 'cd',
-  'DR Congo': 'cd',
-  Switzerland: 'ch',
-  Austria: 'at',
-  Poland: 'pl',
-  Croatia: 'hr',
-  Serbia: 'rs',
-  Denmark: 'dk',
-  Sweden: 'se',
-  Norway: 'no',
-  'Czech Republic': 'cz',
-  Czechia: 'cz',
-  Slovakia: 'sk',
-  Romania: 'ro',
-  Hungary: 'hu',
-  Turkey: 'tr',
-  Greece: 'gr',
-  Ukraine: 'ua',
-  Scotland: 'gb-sct',
-  Wales: 'gb-wls',
-  Ireland: 'ie',
-  Albania: 'al',
-  Georgia: 'ge',
-  Slovenia: 'si',
-  Iceland: 'is',
-  'New Zealand': 'nz',
-  Panama: 'pa',
-  'Costa Rica': 'cr',
-  Honduras: 'hn',
-  Jamaica: 'jm',
-  Haiti: 'ht',
-  Cuba: 'cu',
-  'El Salvador': 'sv',
-  Curaçao: 'cw',
-  'Cape Verde': 'cv',
-  Jordan: 'jo',
-  Iraq: 'iq',
-  'United Arab Emirates': 'ae',
-  'China PR': 'cn',
-  China: 'cn',
-  Comoros: 'km',
-  'New Caledonia': 'nc',
-};
 
 // --- helpers ---
 
@@ -227,63 +121,6 @@ async function fetchText(url, timeoutMs = 45000) {
   const res = await fetch(url, { headers: HEADERS, signal: AbortSignal.timeout(timeoutMs) });
   if (!res.ok) throw new Error(`HTTP ${res.status} fetching ${url}`);
   return res.text();
-}
-
-// --- Finnish names ---
-
-async function fetchEnglishToFinnish() {
-  console.log(`Fetching country names: ${COUNTRY_NAMES_FI_URL}`);
-  const $ = cheerio.load(await fetchText(COUNTRY_NAMES_FI_URL));
-  const map = {};
-  $('table tr').each((_, row) => {
-    const cells = $(row).find('td');
-    if (cells.length < 2) return;
-    const en = $(cells[0]).text().trim();
-    const fi = $(cells[1]).text().trim();
-    if (en && fi) map[en] = fi;
-  });
-  const count = Object.keys(map).length;
-  if (count < 50) {
-    console.warn(`Warning: few country names from 101languages (${count}); check page structure.`);
-  } else {
-    console.log(`Loaded ${count} English→Finnish country names.`);
-  }
-  return { ...map, ...FINNISH_NAME_OVERRIDES };
-}
-
-function toFinnish(english, enToFi) {
-  const fi = enToFi[english];
-  if (!fi) return null;
-  return fi;
-}
-
-function canonicalize(enToFi) {
-  return (raw) => {
-    const cleaned = cleanName(raw);
-    if (!cleaned) return cleaned;
-    const english = CSV_TO_ENGLISH[cleaned] ?? cleaned;
-    const fi = toFinnish(english, enToFi);
-    if (!fi) {
-      console.warn(
-        `Warning: no Finnish name for "${english}" (from "${cleaned}"). Add FINNISH_NAME_OVERRIDES or CSV_TO_ENGLISH.`,
-      );
-      return null;
-    }
-    return fi;
-  };
-}
-
-function isoByFinnish(enToFi) {
-  const byFi = {};
-  for (const [en, iso] of Object.entries(ISO_CODE_MAP)) {
-    const fi = enToFi[en] ?? en;
-    if (!byFi[fi]) byFi[fi] = iso;
-  }
-  return byFi;
-}
-
-function isoCode(fiName, byFi) {
-  return (byFi[fiName.trim()] ?? fiName.trim().slice(0, 2).toLowerCase().replace(/[^a-zäöå]/gi, '')) || 'xx';
 }
 
 function resolveName(name, canon) {
