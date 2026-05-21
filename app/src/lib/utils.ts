@@ -37,45 +37,6 @@ export const sortPredsByDateTime = (list: Prediction[]): Prediction[] => {
   return list.sort((a, b) => kickoffMs(a.match.starts_at) - kickoffMs(b.match.starts_at));
 };
 
-export const groupByUser = (predictions: Prediction[]) => {
-  return predictions.reduce((acc: { [key: string]: Prediction[] }, prediction: Prediction) => {
-    const userName = prediction.profile?.first_name ?? '';
-    if (!acc[userName]) {
-      acc[userName] = [];
-    }
-    acc[userName].push(prediction);
-    return acc;
-  }, {});
-};
-
-export const transformDataForChart = (groupedPredictions: Record<string, Prediction[]>) => {
-  const usersData = Object.keys(groupedPredictions).map((userName) => {
-    let cumulativePoints = 0;
-
-    const data = groupedPredictions[userName].map((prediction) => {
-      cumulativePoints += prediction.points;
-
-      return {
-        x: new Date(prediction.match.starts_at),
-        y: cumulativePoints,
-      };
-    });
-
-    return {
-      label: userName,
-      data,
-      latestPoints: cumulativePoints,
-    };
-  });
-
-  usersData.sort((a, b) => b.latestPoints - a.latestPoints);
-
-  return usersData.map(({ label, data }) => ({
-    label,
-    data,
-  }));
-};
-
 export const rules = [
   { rule: 'Ottelun lopputulos täysin oikein', points: '+6' },
   {

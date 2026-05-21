@@ -4,10 +4,10 @@
   import * as Card from '$lib/components/ui/card';
   import * as Table from '$lib/components/ui/table';
   import * as ScrollArea from '$lib/components/ui/scroll-area';
+  import { browser } from '$app/environment';
   import { Button } from '$lib/components/ui/button';
   import { sortRows, toggleSortKey, type SortDir } from '$lib/utils/table-sort';
   export let data: PageData;
-  let chartData = data?.chartData;
 
   let sortKey: string | null = null;
   let sortDir: SortDir = 'asc';
@@ -26,6 +26,8 @@
 
   $: standings = data?.standings ?? [];
   $: sortedStandings = sortRows(standings, sortKey, sortDir, cellValue);
+  $: chartData = data?.chartData;
+  $: showCharts = data?.showCharts ?? false;
 </script>
 
 <div class="mx-auto flex w-full max-w-4xl flex-col gap-4">
@@ -67,13 +69,17 @@
     </ScrollArea.Root>
   </Card.Root>
 
-  {#if data?.chartData && data?.chartData.length > 0}
-    <Card.Root class="w-full max-w-4xl shadow-sm">
-      <Card.Content class="pt-6">
-        {#await import('./UserPointsChart.svelte') then { default: UserPointsChart }}
-          <UserPointsChart {chartData} />
-        {/await}
-      </Card.Content>
-    </Card.Root>
-  {/if}
+  <Card.Root class="w-full max-w-4xl shadow-sm">
+    <Card.Content class="pt-6">
+      {#if showCharts && chartData}
+        {#if browser}
+          {#await import('./StandingsCharts.svelte') then { default: StandingsCharts }}
+            <StandingsCharts {chartData} />
+          {/await}
+        {/if}
+      {:else}
+        <p class="text-sm text-muted-foreground">Ei pisteitä näytettäväksi</p>
+      {/if}
+    </Card.Content>
+  </Card.Root>
 </div>
