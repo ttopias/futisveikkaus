@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import * as echarts from 'echarts';
+  import type { ECharts, EChartsOption } from 'echarts';
 
   interface Point {
     x: Date;
@@ -13,16 +13,10 @@
   }
 
   export let chartData: ChartData[] = [];
-  let chartInstance: echarts.ECharts | null = null;
+  let chartInstance: ECharts | null = null;
 
-  function initChart() {
-    const chartElement = document.getElementById('chart');
-
-    if (!chartElement) return;
-
-    chartInstance = echarts.init(chartElement);
-
-    const option = {
+  function buildOption() {
+    return {
       title: {
         text: 'Pelaajien pistekehitys',
         textStyle: {
@@ -47,12 +41,6 @@
         bottom: '3%',
         containLabel: true,
       },
-      // legend: {
-      //   data: chartData.map((user) => user.label),
-      //   textStyle: {
-      //     color: '#4A5568',
-      //   },
-      // },
       xAxis: {
         type: 'time',
         boundaryGap: false,
@@ -102,19 +90,29 @@
         },
         showSymbol: false,
       })),
-    };
-
-    chartInstance.setOption(option);
+    } as EChartsOption;
   }
 
   onMount(() => {
-    initChart();
+    let disposed = false;
+
+    (async () => {
+      const chartElement = document.getElementById('chart');
+      if (!chartElement || disposed) return;
+
+      const { init } = await import('echarts');
+      if (disposed) return;
+
+      chartInstance = init(chartElement);
+      chartInstance.setOption(buildOption() as EChartsOption);
+    })();
+
     return () => {
-      if (chartInstance) {
-        chartInstance.dispose();
-      }
+      disposed = true;
+      chartInstance?.dispose();
+      chartInstance = null;
     };
   });
 </script>
 
-<div id="chart" class="w-full h-96 p-4" />
+<div id="chart" class="h-96 w-full p-4" />

@@ -79,6 +79,8 @@ CREATE INDEX idx_matches_starts_at ON matches(starts_at);
 CREATE INDEX idx_matches_home_id ON matches(home_id);
 CREATE INDEX idx_matches_away_id ON matches(away_id);
 CREATE INDEX idx_matches_finished ON matches(finished);
+-- Partial index for visible-stage lookup (unfinished matches per stage).
+CREATE INDEX idx_matches_unfinished_stage ON matches(stage) WHERE finished = false;
 CREATE INDEX idx_profiles_first_name ON profiles(first_name);
 
 CREATE INDEX idx_guesses_match_id ON guesses(match_id);

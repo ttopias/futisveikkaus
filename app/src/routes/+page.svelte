@@ -1,53 +1,41 @@
 <script lang="ts">
   import type { PageData } from './$types';
   import { rules } from '$lib/utils';
-  import { onMount, onDestroy } from 'svelte';
+  import { onMount } from 'svelte';
   import * as Card from '$lib/components/ui/card';
   import * as Table from '$lib/components/ui/table';
 
   export let data: PageData;
 
   $: tournamentStart = data.tournamentStartsAt ? new Date(data.tournamentStartsAt) : null;
-  $: showCountdown = tournamentStart != null && tournamentStart > new Date();
   $: countDownDate = tournamentStart?.getTime() ?? 0;
 
-  let days = 0,
-    hours = 0,
-    minutes = 0,
-    seconds = 0,
-    timeLeft = 0;
+  let now = Date.now();
 
+  $: timeLeft = countDownDate > 0 ? Math.max(0, countDownDate - now) : 0;
   $: days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
   $: hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
   $: minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
   $: seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
 
-  const countdownUnits = [
-    { label: 'päivää', get: () => days },
-    { label: 'tuntia', get: () => hours },
-    { label: 'minuuttia', get: () => minutes },
-    { label: 'sekuntia', get: () => seconds },
+  $: countdownUnits = [
+    { label: 'päivää', value: days },
+    { label: 'tuntia', value: hours },
+    { label: 'minuuttia', value: minutes },
+    { label: 'sekuntia', value: seconds },
   ];
 
-  let interval: ReturnType<typeof setInterval> | undefined;
+  $: showCountdown = timeLeft > 0;
 
   onMount(() => {
     if (!showCountdown) return;
 
-    const tick = () => {
-      timeLeft = countDownDate - new Date().getTime();
-      if (timeLeft < 0) {
-        timeLeft = 0;
-        clearInterval(interval);
-      }
-    };
+    const interval = setInterval(() => {
+      now = Date.now();
+      if (countDownDate - now <= 0) clearInterval(interval);
+    }, 1000);
 
-    tick();
-    interval = setInterval(tick, 1000);
-  });
-
-  onDestroy(() => {
-    clearInterval(interval);
+    return () => clearInterval(interval);
   });
 </script>
 
@@ -55,13 +43,19 @@
   {#if showCountdown}
     <section class="w-full text-center">
       <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">Kisojen alkuun</h1>
-      <div class="mx-auto mt-4 grid max-w-md grid-cols-2 gap-3 sm:grid-cols-4">
-        {#each countdownUnits as unit}
-          <div class="rounded-xl border border-border bg-card px-2 py-4 shadow-sm">
-            <p class="font-mono text-3xl font-bold tabular-nums text-card-foreground sm:text-4xl">
-              {unit.get()}
+      <div class="mx-auto mt-4 flex w-full max-w-md flex-nowrap justify-center gap-1 sm:gap-3">
+        {#each countdownUnits as unit (unit.label)}
+          <div
+            class="min-w-0 shrink-0 flex-1 rounded-xl border border-border bg-card px-1 py-3 shadow-sm sm:px-2 sm:py-4"
+          >
+            <p
+              class="font-mono text-2xl font-bold tabular-nums leading-none text-card-foreground sm:text-4xl"
+            >
+              {unit.value}
             </p>
-            <p class="mt-1 text-xs text-muted-foreground sm:text-sm">{unit.label}</p>
+            <p class="mt-1 text-[10px] leading-tight text-muted-foreground sm:text-sm">
+              {unit.label}
+            </p>
           </div>
         {/each}
       </div>

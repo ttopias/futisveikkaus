@@ -1,6 +1,7 @@
 import { PUBLIC_SITE_URL } from '$env/static/public';
 import { AuthApiError } from '@supabase/supabase-js';
 import { fail, redirect } from '@sveltejs/kit';
+import { safeRedirectPath } from '$lib/server/safeRedirect';
 import { supabaseAdminClient } from '$lib/server/supabaseAdminClient';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -36,11 +37,7 @@ export const actions: Actions = {
       });
     }
 
-    if (to) {
-      redirect(303, to);
-    } else {
-      redirect(303, '/');
-    }
+    redirect(303, safeRedirectPath(to));
   },
 
   signup: async ({ request, locals: { supabase } }) => {
@@ -71,6 +68,7 @@ export const actions: Actions = {
       });
     }
 
+    // Role is set in handle_new_user (app_metadata); clients cannot promote to admin.
     const { error } = await supabase.auth.signUp({
       email,
       password,

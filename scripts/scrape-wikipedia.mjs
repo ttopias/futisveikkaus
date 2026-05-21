@@ -51,7 +51,7 @@ const CSV_TO_ENGLISH = {
 
 const FINNISH_NAME_OVERRIDES = {
   'United States': 'Yhdysvallat',
-  'DR Congo': 'Kongon demokraattinen tasavalta',
+  'DR Congo': 'Kongo',
   'Ivory Coast': 'Norsunluurannikko',
   "Cote d'Ivoire": 'Norsunluurannikko',
   Czechia: 'Tšekki',
@@ -59,7 +59,7 @@ const FINNISH_NAME_OVERRIDES = {
   England: 'Englanti',
   Scotland: 'Skotlanti',
   Wales: 'Wales',
-  'Republic of Congo': 'Kongon tasavalta',
+  'Republic of Congo': 'Kongo',
   Curaçao: 'Curaçao',
 };
 

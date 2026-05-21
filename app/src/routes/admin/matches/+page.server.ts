@@ -14,8 +14,9 @@ export const load: PageServerLoad = async ({ locals: { safeGetSession } }) => {
   let matches: Match[] = [];
   let teams: Team[] = [];
 
-  const { data, error: matchesError } = await supabaseAdminClient.from('matches').select(
-    `
+  const [matchesResult, teamsResult] = await Promise.all([
+    supabaseAdminClient.from('matches').select(
+      `
     match_id,
     match_number,
     stage,
@@ -25,22 +26,23 @@ export const load: PageServerLoad = async ({ locals: { safeGetSession } }) => {
     away_goals,
     finished
   `,
-  );
+    ),
+    supabaseAdminClient.from('teams').select('*'),
+  ]);
 
-  if (matchesError) {
-    console.error('error', matchesError);
-    error(500, matchesError.message);
+  if (matchesResult.error) {
+    console.error('error', matchesResult.error);
+    error(500, matchesResult.error.message);
   }
 
-  matches = sortByDateTime(enrichMatchesWithStageDisplay(data as unknown as Match[]));
-  const res = await supabaseAdminClient.from('teams').select('*');
+  matches = sortByDateTime(enrichMatchesWithStageDisplay(matchesResult.data as unknown as Match[]));
 
-  if (res.error) {
-    console.error('Error fetching teams:', res.error.message);
+  if (teamsResult.error) {
+    console.error('Error fetching teams:', teamsResult.error.message);
     return { user, matches, teams };
   }
 
-  teams = res.data as unknown as Team[];
+  teams = teamsResult.data as unknown as Team[];
 
   return { user, matches, teams };
 };

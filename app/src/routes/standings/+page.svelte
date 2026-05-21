@@ -6,8 +6,6 @@
   import * as ScrollArea from '$lib/components/ui/scroll-area';
   import { Button } from '$lib/components/ui/button';
   import { sortRows, toggleSortKey, type SortDir } from '$lib/utils/table-sort';
-  import UserPointsChart from './UserPointsChart.svelte';
-
   export let data: PageData;
   let chartData = data?.chartData;
 
@@ -72,7 +70,9 @@
   {#if data?.chartData && data?.chartData.length > 0}
     <Card.Root class="w-full max-w-4xl shadow-sm">
       <Card.Content class="pt-6">
-        <UserPointsChart {chartData} />
+        {#await import('./UserPointsChart.svelte') then { default: UserPointsChart }}
+          <UserPointsChart {chartData} />
+        {/await}
       </Card.Content>
     </Card.Root>
   {/if}

@@ -56,12 +56,12 @@ export const MATCH_PARTICIPANT_SELECT = `
   away:away_id (team_id, country_code, name, group, win, draw, loss, gf, gaa)
 `;
 
-/** Display-only participant fields (flags + names). */
+/** Display-only participant fields (flags + names + group for stage labels). */
 export const MATCH_PARTICIPANT_DISPLAY_SELECT = `
   home_slot,
   away_slot,
-  home:home_id (team_id, country_code, name),
-  away:away_id (team_id, country_code, name)
+  home:home_id (team_id, country_code, name, group),
+  away:away_id (team_id, country_code, name, group)
 `;
 
 export function isPlaceholderFlag(countryCode: string | null | undefined): boolean {

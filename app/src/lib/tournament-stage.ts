@@ -1,22 +1,32 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { MATCH_STAGES, type MatchStage } from '$lib/stages';
+import { MATCH_STAGES, type MatchStage, isMatchStage } from '$lib/stages';
 
 /**
  * First stage (in tournament order) that still has unfinished matches.
  * When every match is finished, returns `final`.
  */
 export async function fetchVisibleMatchStage(supabase: SupabaseClient): Promise<MatchStage> {
-  const { data, error } = await supabase.from('matches').select('stage').eq('finished', false);
+  const { data, error } = await supabase.rpc('visible_match_stage');
 
-  if (error) {
-    throw new Error(`fetchVisibleMatchStage: ${error.message}`);
+  if (!error && isMatchStage(data)) {
+    return data;
   }
 
-  if (!data?.length) {
+  // Fallback when RPC is not deployed yet (local / older DB).
+  const { data: rows, error: selectError } = await supabase
+    .from('matches')
+    .select('stage')
+    .eq('finished', false);
+
+  if (selectError) {
+    throw new Error(`fetchVisibleMatchStage: ${selectError.message}`);
+  }
+
+  if (!rows?.length) {
     return 'final';
   }
 
-  const unfinishedStages = new Set(data.map((row) => row.stage));
+  const unfinishedStages = new Set(rows.map((row) => row.stage));
   for (const stage of MATCH_STAGES) {
     if (unfinishedStages.has(stage)) {
       return stage;

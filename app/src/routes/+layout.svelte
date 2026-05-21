@@ -4,6 +4,8 @@
   import Navbar from '$lib/components/Navbar.svelte';
   import { Skeleton } from '$lib/components/ui/skeleton';
   import { PUBLIC_APP_NAME } from '$env/static/public';
+
+  const copyrightYear = new Date().getFullYear();
 </script>
 
 <svelte:head>
@@ -41,8 +43,9 @@
         rel="noopener noreferrer"
         class="hover:underline"
       >
-        © 2024
+        © {copyrightYear}
       </a>
+      <a href="/privacy" class="hover:underline">Tietosuoja</a>
     </div>
   </footer>
 </div>

@@ -21,10 +21,7 @@ export const load: PageServerLoad = async ({
 
   let user: Awaited<ReturnType<typeof safeGetSession>>['user'];
   try {
-    const [sessionResult, stage] = await Promise.all([
-      safeGetSession(),
-      getVisibleMatchStage(),
-    ]);
+    const [sessionResult, stage] = await Promise.all([safeGetSession(), getVisibleMatchStage()]);
     user = sessionResult.user;
     visibleMatchStage = stage;
   } catch (e) {
@@ -35,10 +32,11 @@ export const load: PageServerLoad = async ({
     error(401, 'Unauthorized');
   }
 
-  const res = await supabase
-    .from('guesses')
-    .select(
-      `
+  const [res, sec_res, tournamentRes] = await Promise.all([
+    supabase
+      .from('guesses')
+      .select(
+        `
     guess_id,
     user_id,
     match:match_id (
@@ -55,22 +53,12 @@ export const load: PageServerLoad = async ({
     points,
     points_calculated
   `,
-    )
-    .eq('user_id', user.id);
-
-  if (res.error) {
-    error(500, res.error.message);
-  }
-
-  predictions = res.data as unknown as Prediction[];
-  predictions = predictions.filter((p) => isMatchInVisibleStage(p.match, visibleMatchStage));
-
-  const predictionsMade = predictions?.map((p: Prediction) => p.match.match_id);
-
-  let query = supabase
-    .from('matches')
-    .select(
-      `
+      )
+      .eq('user_id', user.id),
+    supabase
+      .from('matches')
+      .select(
+        `
   match_id,
   stage,
   starts_at,
@@ -79,21 +67,35 @@ export const load: PageServerLoad = async ({
   away_goals,
   finished
 `,
-    )
-    .eq('stage', visibleMatchStage)
-    .order('starts_at', { ascending: true });
+      )
+      .eq('stage', visibleMatchStage)
+      .order('starts_at', { ascending: true }),
+    supabase
+      .from('matches')
+      .select('starts_at')
+      .not('starts_at', 'is', null)
+      .order('starts_at', { ascending: true })
+      .limit(1)
+      .maybeSingle(),
+  ]);
 
-  if (predictionsMade && predictionsMade.length > 0) {
-    query = query.not('match_id', 'in', `(${predictionsMade.join(',')})`);
+  if (res.error) {
+    error(500, res.error.message);
   }
-
-  const sec_res = await query;
-
   if (sec_res.error) {
     error(500, sec_res.error.message);
   }
 
-  predictableMatches = sec_res.data as unknown as Match[];
+  const rawPredictions = (res.data ?? []) as unknown as Prediction[];
+  predictions = rawPredictions.filter(
+    (p) => p.match && !p.match.finished && isMatchInVisibleStage(p.match, visibleMatchStage),
+  );
+
+  const predictionsMade = new Set(predictions.map((p: Prediction) => p.match.match_id));
+
+  predictableMatches = (sec_res.data as unknown as Match[]).filter(
+    (m) => !predictionsMade.has(m.match_id),
+  );
   predictableMatches = filterMatchesByVisibleStage(predictableMatches, visibleMatchStage);
   predictableMatches = predictableMatches
     .filter((m: Match) => isMatchPredictable(m))
@@ -103,10 +105,15 @@ export const load: PageServerLoad = async ({
     });
 
   predictableMatches = sortByDateTime(enrichMatchesWithStageDisplay(predictableMatches));
-  predictions = predictions.filter((p) => p.match.finished === false);
   predictions = sortPredsByDateTime(enrichPredictionsWithStageDisplay(predictions));
 
-  return { user, predictions, predictableMatches, visibleMatchStage };
+  return {
+    user,
+    predictions,
+    predictableMatches,
+    visibleMatchStage,
+    tournamentStartsAt: tournamentRes.data?.starts_at ?? null,
+  };
 };
 
 async function assertMatchPredictable(

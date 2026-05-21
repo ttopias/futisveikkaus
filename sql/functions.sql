@@ -1,5 +1,37 @@
 -- DATABASE FUNCTIONS
 
+-- First tournament stage that still has unfinished matches (or `final` when all done).
+CREATE OR REPLACE FUNCTION visible_match_stage()
+RETURNS public.match_stage AS $$
+    SELECT COALESCE(
+        (
+            SELECT s.stage
+            FROM unnest(
+                ARRAY[
+                    'group'::public.match_stage,
+                    'r32',
+                    'r16',
+                    'qf',
+                    'sf',
+                    'third',
+                    'final'
+                ]
+            ) WITH ORDINALITY AS s(stage, ord)
+            WHERE EXISTS (
+                SELECT 1
+                FROM matches m
+                WHERE m.finished = false
+                  AND m.stage = s.stage
+            )
+            ORDER BY s.ord
+            LIMIT 1
+        ),
+        'final'::public.match_stage
+    );
+$$ LANGUAGE sql STABLE;
+
+GRANT EXECUTE ON FUNCTION visible_match_stage() TO anon, authenticated;
+
 CREATE OR REPLACE FUNCTION cleanup_user_data()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -183,6 +215,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
+  -- Force default role; admin promotion is service-role only (e.g. seed-smoke-users.mjs).
   UPDATE auth.users
   SET raw_app_meta_data = COALESCE(raw_app_meta_data, '{}'::jsonb) || jsonb_build_object('role', 'user')
   WHERE id = NEW.id;
@@ -190,6 +223,16 @@ BEGIN
   INSERT INTO public.profiles (id, first_name)
   VALUES (NEW.id, COALESCE(NEW.raw_user_meta_data->>'first_name', ''));
   RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+CREATE OR REPLACE FUNCTION sync_dashboard_first_name()
+RETURNS TRIGGER AS $$
+BEGIN
+    UPDATE dashboard
+    SET first_name = NEW.first_name
+    WHERE user_id = NEW.id;
+    RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
@@ -512,3 +555,36 @@ BEGIN
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+
+-- Restrict EXECUTE: visible_match_stage + all_group_stage_complete for RLS/app;
+-- bracket/scoring helpers are trigger-only (service role bypasses RLS for admin writes).
+
+REVOKE ALL ON FUNCTION visible_match_stage() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION visible_match_stage() TO anon, authenticated;
+
+REVOKE ALL ON FUNCTION all_group_stage_complete() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION all_group_stage_complete() TO authenticated;
+
+REVOKE ALL ON FUNCTION group_stage_complete(text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION group_qualifier_team_id(text, int) FROM PUBLIC;
+REVOKE ALL ON FUNCTION third_place_team_id(text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION third_place_slot_groups(text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION best_third_among_groups(text[]) FROM PUBLIC;
+REVOKE ALL ON FUNCTION third_place_slot_groups_complete(text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION resolve_feeder_team_id(text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION resolve_slot_team_id(text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION apply_bracket_slot_update(int, text, text, int, int, boolean) FROM PUBLIC;
+REVOKE ALL ON FUNCTION resolve_bracket_slots_for_feeder(int, boolean) FROM PUBLIC;
+REVOKE ALL ON FUNCTION resolve_bracket_slots_for_group(text, boolean) FROM PUBLIC;
+REVOKE ALL ON FUNCTION resolve_bracket_slots(boolean) FROM PUBLIC;
+
+REVOKE ALL ON FUNCTION calculate_guess_points_for_match(int, boolean, int, int) FROM PUBLIC;
+REVOKE ALL ON FUNCTION calculate_guess_points() FROM PUBLIC;
+REVOKE ALL ON FUNCTION update_team_statistics() FROM PUBLIC;
+REVOKE ALL ON FUNCTION update_dashboard() FROM PUBLIC;
+REVOKE ALL ON FUNCTION cleanup_user_data() FROM PUBLIC;
+REVOKE ALL ON FUNCTION cleanup_match_data() FROM PUBLIC;
+REVOKE ALL ON FUNCTION cleanup_team_data() FROM PUBLIC;
+REVOKE ALL ON FUNCTION resolve_bracket_slots_trigger() FROM PUBLIC;
+REVOKE ALL ON FUNCTION sync_dashboard_first_name() FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.handle_new_user() FROM PUBLIC;

@@ -56,8 +56,20 @@ export const load: PageServerLoad = async ({
     error(404, 'This match is not available yet');
   }
 
-  const [g_res, profileRes] = await Promise.all([
-    supabase
+  const canViewGuesses = canViewMatchGuesses(match, visibleMatchStage);
+
+  const profileRes = await supabase
+    .from('profiles')
+    .select('first_name')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  const myProfile = profileRes.data;
+
+  let guesses: Prediction[] = [];
+
+  if (canViewGuesses) {
+    const g_res = await supabase
       .from('guesses')
       .select(
         `
@@ -69,20 +81,15 @@ export const load: PageServerLoad = async ({
         points_calculated
       `,
       )
-      .eq('match_id', match_id),
-    supabase.from('profiles').select('first_name').eq('id', user.id).maybeSingle(),
-  ]);
+      .eq('match_id', match_id);
 
-  if (g_res.error) {
-    console.error('error', g_res.error);
-    error(500, g_res.error.message);
+    if (g_res.error) {
+      console.error('error', g_res.error);
+      error(500, g_res.error.message);
+    }
+
+    guesses = (g_res.data ?? []) as unknown as Prediction[];
   }
-
-  let guesses = (g_res.data ?? []) as unknown as Prediction[];
-
-  const myProfile = profileRes.data;
-
-  const canViewGuesses = canViewMatchGuesses(match, visibleMatchStage);
 
   if (canViewGuesses && match.finished) {
     guesses = guesses.sort((a, b) => b.points - a.points);

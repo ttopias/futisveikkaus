@@ -40,6 +40,7 @@
 
   const matchCardFlagClass = 'size-5 shrink-0 rounded-sm object-cover';
   const scoreClass = 'whitespace-nowrap tabular-nums font-mono font-bold';
+  const stageBadgeClass = 'whitespace-nowrap';
   const tableFlagClass = 'h-5 w-7 shrink-0 rounded-sm';
   const tableTeamNameClass = 'min-w-0 break-words text-sm leading-tight text-foreground';
 </script>
@@ -75,7 +76,13 @@
                 on:click={() => openMatch(match)}
               >
                 <div class="mb-2 flex w-full items-center justify-between gap-2">
-                  <Badge variant="outline">{match.group}</Badge>
+                  <Badge variant="outline" class={stageBadgeClass}>
+                    {#if match.groupStage}
+                      Lohko {match.group}
+                    {:else}
+                      {match.group}
+                    {/if}
+                  </Badge>
                   <div class="flex min-w-0 items-center gap-2">
                     <span class="text-xs text-muted-foreground">
                       {formatMatchTime(match.starts_at, 'DD.MM.YYYY')}
@@ -129,7 +136,7 @@
           <Table.Root>
             <Table.Header>
               <Table.Row>
-                <Table.Head>Lohko</Table.Head>
+                <Table.Head>#</Table.Head>
                 <Table.Head>Pvm</Table.Head>
                 <Table.Head>Klo</Table.Head>
                 <Table.Head>Koti</Table.Head>
@@ -145,8 +152,14 @@
                   class={cn(canOpenMatch && 'cursor-pointer')}
                   on:click={() => openMatch(match)}
                 >
-                  <Table.Cell>
-                    <Badge variant="outline">{match.group}</Badge>
+                  <Table.Cell class="whitespace-nowrap">
+                    <Badge variant="outline" class={stageBadgeClass}>
+                      {#if match.groupStage}
+                        Lohko {match.group}
+                      {:else}
+                        {match.group}
+                      {/if}
+                    </Badge>
                   </Table.Cell>
                   <Table.Cell class="whitespace-nowrap text-sm">
                     {formatMatchTime(match.starts_at, 'DD-MM-YYYY')}

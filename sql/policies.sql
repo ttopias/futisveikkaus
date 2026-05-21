@@ -35,6 +35,8 @@ CREATE POLICY dashboard_select_authenticated ON dashboard
   FOR SELECT TO authenticated
   USING (true);
 
+-- dashboard rows are maintained by triggers (update_dashboard, sync_dashboard_first_name)
+
 -- guesses: own rows always; all rows once the match has kicked off
 CREATE POLICY guesses_select_own ON guesses
   FOR SELECT TO authenticated
@@ -58,7 +60,10 @@ CREATE POLICY guesses_insert_own ON guesses
       SELECT 1 FROM matches m
       WHERE m.match_id = match_id
         AND m.starts_at > now()
-        AND (m.stage = 'group' OR all_group_stage_complete())
+        AND (
+          (m.stage = 'group' AND NOT all_group_stage_complete())
+          OR (m.stage <> 'group' AND all_group_stage_complete())
+        )
     )
   );
 
@@ -71,7 +76,10 @@ CREATE POLICY guesses_update_own ON guesses
       SELECT 1 FROM matches m
       WHERE m.match_id = match_id
         AND m.starts_at > now()
-        AND (m.stage = 'group' OR all_group_stage_complete())
+        AND (
+          (m.stage = 'group' AND NOT all_group_stage_complete())
+          OR (m.stage <> 'group' AND all_group_stage_complete())
+        )
     )
   );
 
@@ -83,6 +91,9 @@ CREATE POLICY guesses_delete_own ON guesses
       SELECT 1 FROM matches m
       WHERE m.match_id = match_id
         AND m.starts_at > now()
-        AND (m.stage = 'group' OR all_group_stage_complete())
+        AND (
+          (m.stage = 'group' AND NOT all_group_stage_complete())
+          OR (m.stage <> 'group' AND all_group_stage_complete())
+        )
     )
   );

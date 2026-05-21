@@ -69,3 +69,9 @@ CREATE TRIGGER on_auth_user_created
 AFTER INSERT ON auth.users
 FOR EACH ROW
 EXECUTE FUNCTION public.handle_new_user();
+
+CREATE TRIGGER trigger_sync_dashboard_first_name
+AFTER UPDATE OF first_name ON profiles
+FOR EACH ROW
+WHEN (OLD.first_name IS DISTINCT FROM NEW.first_name)
+EXECUTE FUNCTION sync_dashboard_first_name();

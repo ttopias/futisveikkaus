@@ -57,13 +57,9 @@ export const actions: Actions = {
       });
     }
 
-    await supabase.from('dashboard').update({ first_name }).eq('user_id', user.id);
-
     const authRes = await supabase.auth.updateUser({
       email: email || undefined,
-      data: {
-        first_name,
-      },
+      data: { first_name },
     });
 
     if (authRes.error) {

@@ -8,6 +8,42 @@ import { enrichPredictionsWithStageDisplay } from '$lib/stages';
 import { sortPredsByDateTime } from '$lib/utils';
 import type { Prediction } from '$lib';
 
+/**
+ * Admin guess routes use the service role (RLS bypass). These checks prevent
+ * accidental edits after kickoff or on finished matches, which would desync scoring.
+ * Pass form field `override=1` to allow pre-finish edits after kickoff only.
+ */
+async function assertAdminMatchGuessAllowed(
+  match_id: string,
+  override: boolean,
+): Promise<ReturnType<typeof fail> | null> {
+  const { data: match, error: matchError } = await supabaseAdminClient
+    .from('matches')
+    .select('match_id, starts_at, finished')
+    .eq('match_id', match_id)
+    .maybeSingle();
+
+  if (matchError || !match) {
+    return fail(400, { error: 'Match not found' });
+  }
+
+  if (match.finished) {
+    return fail(400, {
+      error:
+        'Match is finished; changing guesses can corrupt points. Adjust the match result instead.',
+    });
+  }
+
+  if (!override && match.starts_at && new Date(match.starts_at) <= new Date()) {
+    return fail(400, {
+      error:
+        'Match has started. Submit with override=1 only if you intend a post-kickoff admin fix.',
+    });
+  }
+
+  return null;
+}
+
 export const load: PageServerLoad = async ({ locals: { safeGetSession } }) => {
   const { user } = await safeGetSession();
   requireAdmin(user);
@@ -19,11 +55,13 @@ export const load: PageServerLoad = async ({ locals: { safeGetSession } }) => {
     error(500, e instanceof Error ? e.message : 'Failed to load tournament stage');
   }
 
-  const res = await supabaseAdminClient.from('guesses').select(
-    `
+  const res = await supabaseAdminClient
+    .from('guesses')
+    .select(
+      `
     guess_id,
     profile:user_id (id, first_name),
-    match:match_id (
+    match:match_id!inner (
       match_id,
       stage,
       starts_at,
@@ -37,16 +75,16 @@ export const load: PageServerLoad = async ({ locals: { safeGetSession } }) => {
     points,
     points_calculated
   `,
-  );
+    )
+    .eq('match.stage', visibleMatchStage);
 
   if (res.error) {
     error(500, res.error.message);
   }
 
-  let guesses = sortPredsByDateTime(
+  const guesses = sortPredsByDateTime(
     enrichPredictionsWithStageDisplay(res.data as unknown as Prediction[]),
   );
-  guesses = guesses.filter((g) => g.match.stage === visibleMatchStage);
 
   return { guesses, visibleMatchStage };
 };
@@ -78,6 +116,10 @@ export const actions: Actions = {
         },
       });
     }
+
+    const override = form_data.get('override') === '1';
+    const matchCheck = await assertAdminMatchGuessAllowed(match_id, override);
+    if (matchCheck) return matchCheck;
 
     const res = await supabaseAdminClient.from('guesses').insert({
       match_id,
@@ -144,6 +186,10 @@ export const actions: Actions = {
         },
       });
     }
+
+    const override = form_data.get('override') === '1';
+    const matchCheck = await assertAdminMatchGuessAllowed(match_id, override);
+    if (matchCheck) return matchCheck;
 
     const res = await supabaseAdminClient
       .from('guesses')

@@ -8,6 +8,7 @@
 -- Triggers on auth.users (app-owned; auth.users always exists)
 DROP TRIGGER IF EXISTS trigger_cleanup_user_data ON auth.users;
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+DROP TRIGGER IF EXISTS trigger_sync_dashboard_first_name ON public.profiles;
 
 -- Tables (CASCADE drops dependent triggers, policies, indexes, and FKs)
 DROP TABLE IF EXISTS public.guesses CASCADE;
@@ -26,6 +27,7 @@ DROP FUNCTION IF EXISTS public.update_user_points_aggregate() CASCADE;
 DROP FUNCTION IF EXISTS public.update_team_statistics() CASCADE;
 DROP FUNCTION IF EXISTS public.update_dashboard() CASCADE;
 DROP FUNCTION IF EXISTS public.handle_new_user() CASCADE;
+DROP FUNCTION IF EXISTS public.sync_dashboard_first_name() CASCADE;
 DROP FUNCTION IF EXISTS public.group_stage_complete(text) CASCADE;
 DROP FUNCTION IF EXISTS public.all_group_stage_complete() CASCADE;
 DROP FUNCTION IF EXISTS public.third_place_team_id(text) CASCADE;
