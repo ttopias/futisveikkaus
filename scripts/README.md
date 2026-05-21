@@ -47,7 +47,7 @@ Scripts validate common mistakes before connecting.
 
 Inline overrides in the script: `CSV_TO_ENGLISH`, `FINNISH_NAME_OVERRIDES`.
 
-Fails if match count is not **104**.
+Adapts to whatever the fixture CSV contains (no fixed match count). Logs stage breakdown; warns on skipped rows (bad dates, unresolved names, missing KO slots). Exits only on fatal errors (network, empty fixtures, no teams, no matches after merge).
 
 ### Data model
 

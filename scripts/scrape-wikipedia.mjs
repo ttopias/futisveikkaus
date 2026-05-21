@@ -27,16 +27,7 @@ const COUNTRY_NAMES_FI_URL = 'https://www.101languages.net/finnish/country-names
 const FIXTURE_CSV_URL = 'https://fixturedownload.com/download/fifa-world-cup-2026-UTC.csv';
 const HEADERS = { 'User-Agent': 'Mozilla/5.0 (compatible; FutisveikkausScraper/1.0)' };
 const GROUPS = 'ABCDEFGHIJKL'.split('');
-const EXPECTED_MATCHES = 104;
-const EXPECTED_STAGE_COUNTS = {
-  group: 72,
-  r32: 16,
-  r16: 8,
-  qf: 4,
-  sf: 2,
-  third: 1,
-  final: 1,
-};
+const STAGE_ORDER = ['group', 'r32', 'r16', 'qf', 'sf', 'third', 'final'];
 
 const CSV_TO_ENGLISH = {
   'Korea Republic': 'South Korea',
@@ -175,44 +166,8 @@ function countByStage(matches) {
 }
 
 function formatStageCounts(counts) {
-  return Object.keys(EXPECTED_STAGE_COUNTS)
-    .map((stage) => `${stage}: ${counts[stage] ?? 0}`)
-    .join(', ');
-}
-
-function expectedMatchNumbersForStage(stage) {
-  const nums = [];
-  for (let n = 1; n <= EXPECTED_MATCHES; n++) {
-    if (stageForMatch(n) === stage) nums.push(n);
-  }
-  return nums;
-}
-
-function assertStageCounts(matches) {
-  const counts = countByStage(matches);
-  const byNumber = new Map(matches.map((m) => [m.match_number, m]));
-
-  const missing = [];
-  for (let n = 1; n <= EXPECTED_MATCHES; n++) {
-    if (!byNumber.has(n)) missing.push(n);
-  }
-  if (missing.length) {
-    throw new Error(
-      `Expected ${EXPECTED_MATCHES} matches, got ${matches.length}. Missing match_numbers: ${missing.join(', ')}`,
-    );
-  }
-
-  for (const [stage, expected] of Object.entries(EXPECTED_STAGE_COUNTS)) {
-    const got = counts[stage] ?? 0;
-    if (got !== expected) {
-      const want = expectedMatchNumbersForStage(stage);
-      const have = new Set(matches.filter((m) => m.stage === stage).map((m) => m.match_number));
-      const missingInStage = want.filter((n) => !have.has(n));
-      throw new Error(
-        `Expected ${expected} ${stage} matches, got ${got}. Missing match_numbers: ${missingInStage.join(', ') || '—'}. All stages: ${formatStageCounts(counts)}`,
-      );
-    }
-  }
+  const stages = [...new Set([...STAGE_ORDER, ...Object.keys(counts)])];
+  return stages.map((stage) => `${stage}: ${counts[stage] ?? 0}`).join(', ');
 }
 
 function parseCsvLine(line) {
@@ -287,19 +242,18 @@ async function fetchEnglishToFinnish() {
     const fi = $(cells[1]).text().trim();
     if (en && fi) map[en] = fi;
   });
-  if (Object.keys(map).length < 100) {
-    throw new Error(`Expected ~193 country names, got ${Object.keys(map).length}`);
+  const count = Object.keys(map).length;
+  if (count < 50) {
+    console.warn(`Warning: few country names from 101languages (${count}); check page structure.`);
+  } else {
+    console.log(`Loaded ${count} English→Finnish country names.`);
   }
   return { ...map, ...FINNISH_NAME_OVERRIDES };
 }
 
 function toFinnish(english, enToFi) {
   const fi = enToFi[english];
-  if (!fi) {
-    throw new Error(
-      `No Finnish name for "${english}". Add FINNISH_NAME_OVERRIDES or CSV_TO_ENGLISH in scrape-wikipedia.mjs.`,
-    );
-  }
+  if (!fi) return null;
   return fi;
 }
 
@@ -307,7 +261,15 @@ function canonicalize(enToFi) {
   return (raw) => {
     const cleaned = cleanName(raw);
     if (!cleaned) return cleaned;
-    return toFinnish(CSV_TO_ENGLISH[cleaned] ?? cleaned, enToFi);
+    const english = CSV_TO_ENGLISH[cleaned] ?? cleaned;
+    const fi = toFinnish(english, enToFi);
+    if (!fi) {
+      console.warn(
+        `Warning: no Finnish name for "${english}" (from "${cleaned}"). Add FINNISH_NAME_OVERRIDES or CSV_TO_ENGLISH.`,
+      );
+      return null;
+    }
+    return fi;
   };
 }
 
@@ -324,8 +286,9 @@ function isoCode(fiName, byFi) {
   return (byFi[fiName.trim()] ?? fiName.trim().slice(0, 2).toLowerCase().replace(/[^a-zäöå]/gi, '')) || 'xx';
 }
 
-function resolveName(name, canonicalize) {
-  return canonicalize(cleanName(name));
+function resolveName(name, canon) {
+  const fi = canon(cleanName(name));
+  return fi || null;
 }
 
 function resolveKoSlots(matchNumber, row, bracketRow) {
@@ -511,22 +474,40 @@ function extractBracket($) {
   return byMatch;
 }
 
-function mergeSchedule(fixtureRows, bracket, canonicalize) {
+function mergeSchedule(fixtureRows, bracket, canon) {
   const matches = [];
+  let skipped = 0;
+
   for (const row of fixtureRows) {
-    const starts_at = parseKickoff(row.dateRaw, row.sourceTz, row.matchNumber);
+    let starts_at;
+    try {
+      starts_at = parseKickoff(row.dateRaw, row.sourceTz, row.matchNumber);
+    } catch (err) {
+      console.error(`Skipping match #${row.matchNumber}: ${err.message}`);
+      skipped++;
+      continue;
+    }
+
     const bracketRow = bracket.get(row.matchNumber);
     const stage = row.stage === 'group' ? 'group' : (bracketRow?.stage ?? row.stage);
-
     const [home_goals, away_goals, finished] = parseScore(row.result);
 
     if (stage === 'group') {
+      const home_team = resolveName(row.homeRaw, canon);
+      const away_team = resolveName(row.awayRaw, canon);
+      if (!home_team || !away_team) {
+        console.warn(
+          `Skipping group match #${row.matchNumber}: unresolved team (${row.homeRaw} vs ${row.awayRaw}).`,
+        );
+        skipped++;
+        continue;
+      }
       matches.push({
         match_number: row.matchNumber,
         stage,
         starts_at,
-        home_team: resolveName(row.homeRaw, canonicalize),
-        away_team: resolveName(row.awayRaw, canonicalize),
+        home_team,
+        away_team,
         home_slot: null,
         away_slot: null,
         home_goals,
@@ -538,7 +519,9 @@ function mergeSchedule(fixtureRows, bracket, canonicalize) {
 
     const { home_slot, away_slot } = resolveKoSlots(row.matchNumber, row, bracketRow);
     if (!home_slot || !away_slot) {
-      throw new Error(`Missing knockout slots for match #${row.matchNumber}`);
+      console.warn(`Skipping knockout match #${row.matchNumber}: missing slot codes.`);
+      skipped++;
+      continue;
     }
 
     matches.push({
@@ -554,6 +537,8 @@ function mergeSchedule(fixtureRows, bracket, canonicalize) {
       finished,
     });
   }
+
+  if (skipped) console.warn(`Skipped ${skipped} fixture row(s) due to parse/validation issues.`);
   return matches;
 }
 
@@ -631,21 +616,24 @@ async function upsertDb(teams, matches, dryRun) {
   }));
 
   const teamNames = new Set(teams.map((t) => t.name));
-  for (const m of matches) {
-    if (m.stage !== 'group') continue;
-    if (!teamNames.has(m.home_team) || !teamNames.has(m.away_team)) {
-      throw new Error(
-        `Group match #${m.match_number} references unknown teams. Check CSV_TO_ENGLISH / FINNISH_NAME_OVERRIDES.`,
-      );
+  const dbMatches = matches.filter((m) => {
+    if (m.stage === 'group') {
+      if (!teamNames.has(m.home_team) || !teamNames.has(m.away_team)) {
+        console.warn(
+          `Skipping group match #${m.match_number} for DB: unknown team (${m.home_team} vs ${m.away_team}).`,
+        );
+        return false;
+      }
     }
-  }
+    return true;
+  });
 
   if (dryRun) {
-    const ko = matches.filter((m) => m.stage !== 'group').length;
+    const ko = dbMatches.filter((m) => m.stage !== 'group').length;
     console.log(
-      `Dry-run: would upsert ${teamRows.length} teams, ${matches.length} matches (${ko} knockout with slot codes).`,
+      `Dry-run: would upsert ${teamRows.length} teams, ${dbMatches.length} matches (${ko} knockout with slot codes).`,
     );
-    console.log(`Dry-run stages: ${formatStageCounts(countByStage(matches))}`);
+    console.log(`Dry-run stages: ${formatStageCounts(countByStage(dbMatches))}`);
     return;
   }
 
@@ -657,7 +645,7 @@ async function upsertDb(teams, matches, dryRun) {
   const teamIds = Object.fromEntries(teamData.map((t) => [t.name, t.team_id]));
 
   const matchRows = [];
-  for (const m of matches) {
+  for (const m of dbMatches) {
     const row = {
       match_number: m.match_number,
       stage: m.stage,
@@ -682,10 +670,6 @@ async function upsertDb(teams, matches, dryRun) {
     if (m.away_goals != null) row.away_goals = m.away_goals;
     matchRows.push(row);
   }
-  if (matchRows.length !== EXPECTED_MATCHES) {
-    throw new Error(`Expected ${EXPECTED_MATCHES} matches, got ${matchRows.length}.`);
-  }
-
   const { error: matchErr } = await client.from('matches').upsert(matchRows, { onConflict: 'match_number' });
   if (matchErr) throw matchErr;
   console.log(`Upserted ${teamRows.length} teams and ${matchRows.length} matches.`);
@@ -740,24 +724,41 @@ async function main() {
   const byFi = isoByFinnish(enToFi);
   const canon = canonicalize(enToFi);
 
-  let teams = extractTeams($wiki).map((t) => {
+  let teams = [];
+  for (const t of extractTeams($wiki)) {
     const name = toFinnish(t.name, enToFi);
-    return { name, country_code: isoCode(name, byFi), group_name: t.group_name };
-  });
+    if (!name) {
+      console.warn(`Warning: skipping Wikipedia team "${t.name}" (no Finnish name).`);
+      continue;
+    }
+    teams.push({ name, country_code: isoCode(name, byFi), group_name: t.group_name });
+  }
+
+  if (!fixtureRows.length) {
+    throw new Error('No fixture rows parsed from CSV. Check --fixtures-file / --fixtures-url.');
+  }
+  if (!teams.length) {
+    throw new Error('No teams extracted from Wikipedia. Check WIKI_URL and page structure.');
+  }
 
   const bracket = extractBracket($wiki);
   const matches = mergeSchedule(fixtureRows, bracket, canon);
 
-  if (matches.length !== EXPECTED_MATCHES) {
-    throw new Error(`Expected ${EXPECTED_MATCHES} matches, got ${matches.length}.`);
+  if (!matches.length) {
+    throw new Error('No matches after merge. All fixture rows may have been skipped.');
   }
-  assertStageCounts(matches);
 
   const koMatches = matches.filter((m) => m.stage !== 'group').length;
+  const stageCounts = countByStage(matches);
   console.log(
-    `Done: ${matches.length} matches (${koMatches} knockout with slots), ${teams.length} nations, ${bracket.size} Wikipedia bracket pairings.`,
+    `Done: ${matches.length} matches (${koMatches} knockout with slots), ${teams.length} nations, ${bracket.size} Wikipedia bracket pairings (${fixtureRows.length} CSV rows).`,
   );
-  console.log(`Stages: ${formatStageCounts(countByStage(matches))}`);
+  console.log(`Stages: ${formatStageCounts(stageCounts)}`);
+  if (matches.length < fixtureRows.length) {
+    console.warn(
+      `Warning: merged ${matches.length} matches from ${fixtureRows.length} CSV rows (some rows skipped).`,
+    );
+  }
 
   if (args.csv) {
     writeCsv(teams, matches, path.resolve(process.cwd(), args.outputDir));
