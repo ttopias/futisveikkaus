@@ -1,5 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
+  import { page } from '$app/stores';
   import type { PageData } from './$types';
   import type { Match } from '$lib/index';
   import { matchParticipant } from '$lib/match-participants';
@@ -10,7 +11,6 @@
   import { Button } from '$lib/components/ui/button';
   import * as Card from '$lib/components/ui/card';
   import * as Table from '$lib/components/ui/table';
-  import * as ScrollArea from '$lib/components/ui/scroll-area';
   import { formatMatchTime } from '$lib/utils/format-match-time';
   import ChevronRight from 'lucide-svelte/icons/chevron-right';
 
@@ -18,12 +18,14 @@
 
   $: matches = data?.matches ?? [];
   $: stageLabel = data.visibleMatchStage ? visibleStageLabelFi(data.visibleMatchStage) : '';
-  $: canOpenMatch = Boolean(data.user);
+  $: canOpenMatch = Boolean($page.data.user);
+
+  function matchHref(matchId: number): string {
+    return canOpenMatch ? `/matches/${matchId}` : '/auth';
+  }
 
   function openMatch(match: Match) {
-    if (canOpenMatch) {
-      goto(`/matches/${match.match_id}`);
-    }
+    goto(matchHref(match.match_id));
   }
 
   function scoreDisplay(match: Match): string {
@@ -31,18 +33,23 @@
     return `${match.home_goals}-${match.away_goals}`;
   }
 
-  $: matchCardBtnClass = cn(
-    'h-auto w-full flex-col items-stretch rounded-xl border border-border bg-card p-4 text-left shadow-sm',
-    canOpenMatch
-      ? 'min-h-[44px] active:bg-muted hover:bg-muted/50'
-      : 'cursor-default hover:bg-card',
-  );
+  $: matchCardBtnClass =
+    'h-auto w-full flex-col items-stretch rounded-xl border border-border bg-card p-4 text-left shadow-sm min-h-[44px] active:bg-muted hover:bg-muted/50';
 
   const matchCardFlagClass = 'size-5 shrink-0 rounded-sm object-cover';
   const scoreClass = 'whitespace-nowrap tabular-nums font-mono font-bold';
   const stageBadgeClass = 'whitespace-nowrap';
-  const tableFlagClass = 'h-5 w-7 shrink-0 rounded-sm';
-  const tableTeamNameClass = 'min-w-0 break-words text-sm leading-tight text-foreground';
+  const tableClass =
+    'table-fixed w-full text-xs md:text-xs lg:text-sm [&_th]:h-auto [&_th]:px-1.5 [&_th]:py-2 lg:[&_th]:h-12 lg:[&_th]:px-4 lg:[&_th]:py-3 [&_td]:px-1.5 [&_td]:py-2 lg:[&_td]:px-4 lg:[&_td]:py-4';
+  const tableFlagClass = 'h-4 w-5 shrink-0 rounded-sm lg:h-5 lg:w-7';
+  const tableTeamNameClass =
+    'min-w-0 truncate text-xs leading-tight text-foreground lg:text-sm';
+  const groupColClass = 'w-[15%] lg:w-[11%]';
+  const dateColClass = 'hidden w-[11%] whitespace-nowrap lg:table-cell';
+  const timeColClass = 'hidden w-[8%] whitespace-nowrap tabular-nums lg:table-cell';
+  const datetimeColClass = 'w-[17%] whitespace-nowrap tabular-nums lg:hidden';
+  const teamColClass = 'w-[29%] lg:w-[27%]';
+  const scoreColClass = 'w-[10%]';
 </script>
 
 <div class="mx-auto w-full max-w-4xl">
@@ -56,7 +63,7 @@
           <Badge variant="secondary">{stageLabel}</Badge>
         {/if}
       </Card.Header>
-      <Card.Content class="space-y-3 pt-0">
+      <Card.Content class="min-w-0 space-y-3 pt-0">
         {#if !canOpenMatch}
           <p class="text-sm text-muted-foreground">
             Kirjaudu sisään nähdäksesi ottelukohtaiset arvaukset.
@@ -69,11 +76,9 @@
             {@const away = matchParticipant(match, 'away')}
             <li>
               <Button
-                type="button"
+                href={matchHref(match.match_id)}
                 variant="ghost"
                 class={matchCardBtnClass}
-                disabled={!canOpenMatch}
-                on:click={() => openMatch(match)}
               >
                 <div class="mb-2 flex w-full items-center justify-between gap-2">
                   <Badge variant="outline" class={stageBadgeClass}>
@@ -132,28 +137,26 @@
           {/each}
         </ul>
 
-        <ScrollArea.Root class="hidden md:block" orientation="horizontal">
-          <Table.Root>
+        <div class="hidden min-w-0 overflow-x-hidden md:block">
+          <Table.Root class={tableClass}>
             <Table.Header>
               <Table.Row>
-                <Table.Head>#</Table.Head>
-                <Table.Head>Pvm</Table.Head>
-                <Table.Head>Klo</Table.Head>
-                <Table.Head>Koti</Table.Head>
-                <Table.Head class="text-center">Tulos</Table.Head>
-                <Table.Head class="text-right">Vieras</Table.Head>
+                <Table.Head class={groupColClass}>#</Table.Head>
+                <Table.Head class={datetimeColClass}>Aika</Table.Head>
+                <Table.Head class={dateColClass}>Pvm</Table.Head>
+                <Table.Head class={timeColClass}>Klo</Table.Head>
+                <Table.Head class={teamColClass}>Koti</Table.Head>
+                <Table.Head class={cn('text-center', scoreColClass)}>Tulos</Table.Head>
+                <Table.Head class={cn('text-right', teamColClass)}>Vieras</Table.Head>
               </Table.Row>
             </Table.Header>
             <Table.Body>
               {#each matches as match (match.match_id)}
                 {@const home = matchParticipant(match, 'home')}
                 {@const away = matchParticipant(match, 'away')}
-                <Table.Row
-                  class={cn(canOpenMatch && 'cursor-pointer')}
-                  on:click={() => openMatch(match)}
-                >
-                  <Table.Cell class="whitespace-nowrap">
-                    <Badge variant="outline" class={stageBadgeClass}>
+                <Table.Row class="cursor-pointer" on:click={() => openMatch(match)}>
+                  <Table.Cell class={cn('whitespace-nowrap', groupColClass)}>
+                    <Badge variant="outline" class={cn(stageBadgeClass, 'text-[10px] lg:text-xs')}>
                       {#if match.groupStage}
                         Lohko {match.group}
                       {:else}
@@ -161,15 +164,20 @@
                       {/if}
                     </Badge>
                   </Table.Cell>
-                  <Table.Cell class="whitespace-nowrap text-sm">
-                    {formatMatchTime(match.starts_at, 'DD-MM-YYYY')}
-                  </Table.Cell>
-                  <Table.Cell class="whitespace-nowrap text-sm tabular-nums">
+                  <Table.Cell class={datetimeColClass}>
+                    {formatMatchTime(match.starts_at, 'DD.MM.')}
+                    {' '}
                     {formatMatchTime(match.starts_at, 'HH:mm')}
                   </Table.Cell>
-                  <Table.Cell>
+                  <Table.Cell class={dateColClass}>
+                    {formatMatchTime(match.starts_at, 'DD-MM-YYYY')}
+                  </Table.Cell>
+                  <Table.Cell class={timeColClass}>
+                    {formatMatchTime(match.starts_at, 'HH:mm')}
+                  </Table.Cell>
+                  <Table.Cell class={teamColClass}>
                     {#if home}
-                      <div class="flex min-w-0 items-center gap-2">
+                      <div class="flex min-w-0 items-center gap-1 lg:gap-2">
                         <TeamFlag
                           countryCode={home.country_code}
                           name={home.name}
@@ -179,13 +187,15 @@
                       </div>
                     {/if}
                   </Table.Cell>
-                  <Table.Cell class={cn('text-center font-semibold', scoreClass)}>
+                  <Table.Cell class={cn('text-center font-semibold', scoreClass, scoreColClass)}>
                     {scoreDisplay(match)}
                   </Table.Cell>
-                  <Table.Cell class="text-right">
+                  <Table.Cell class={cn('text-right', teamColClass)}>
                     {#if away}
-                      <div class="flex min-w-0 items-center justify-end gap-2">
-                        <span class={cn(tableTeamNameClass, 'text-right')} title={away.name}
+                      <div class="flex min-w-0 items-center justify-end gap-1 lg:gap-2">
+                        <span
+                          class={cn(tableTeamNameClass, 'flex-1 text-right')}
+                          title={away.name}
                           >{away.name}</span
                         >
                         <TeamFlag
@@ -200,7 +210,7 @@
               {/each}
             </Table.Body>
           </Table.Root>
-        </ScrollArea.Root>
+        </div>
       </Card.Content>
     </Card.Root>
   {/if}

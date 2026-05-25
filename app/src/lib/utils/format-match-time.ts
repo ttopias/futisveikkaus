@@ -3,7 +3,7 @@ const pad2 = (n: number) => String(n).padStart(2, '0');
 /** Format match kickoff timestamps for tables and cards. */
 export function formatMatchTime(
   timestamp: string | undefined | null,
-  format: 'DD.MM.YYYY' | 'DD-MM-YYYY' | 'HH:mm',
+  format: 'DD.MM.YYYY' | 'DD.MM.' | 'DD-MM-YYYY' | 'HH:mm',
 ): string {
   if (!timestamp) return '';
   const date = new Date(timestamp);
@@ -18,6 +18,8 @@ export function formatMatchTime(
   switch (format) {
     case 'DD.MM.YYYY':
       return `${day}.${month}.${year}`;
+    case 'DD.MM.':
+      return `${day}.${month}.`;
     case 'DD-MM-YYYY':
       return `${day}-${month}-${year}`;
     case 'HH:mm':
