@@ -8,7 +8,6 @@
 -- Triggers on auth.users (app-owned; auth.users always exists)
 DROP TRIGGER IF EXISTS trigger_cleanup_user_data ON auth.users;
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-DROP TRIGGER IF EXISTS trigger_sync_dashboard_first_name ON public.profiles;
 
 -- Tables (CASCADE drops dependent triggers, policies, indexes, and FKs)
 DROP TABLE IF EXISTS public.guesses CASCADE;

@@ -166,7 +166,8 @@ BEGIN
                 END
             ) AS goals_against
         FROM affected_teams t
-        INNER JOIN matches m ON m.finished = TRUE
+        INNER JOIN matches m ON m.stage = 'group'
+            AND m.finished = TRUE
             AND (m.home_id = t.team_id OR m.away_id = t.team_id)
         GROUP BY t.team_id
     )
@@ -221,7 +222,13 @@ BEGIN
   WHERE id = NEW.id;
 
   INSERT INTO public.profiles (id, first_name)
-  VALUES (NEW.id, COALESCE(NEW.raw_user_meta_data->>'first_name', ''));
+  VALUES (
+    NEW.id,
+    COALESCE(
+      NULLIF(trim(NEW.raw_user_meta_data->>'first_name'), ''),
+      'user_' || substr(replace(NEW.id::text, '-', ''), 1, 8)
+    )
+  );
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;

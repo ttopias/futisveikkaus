@@ -19,12 +19,15 @@ CREATE TRIGGER trigger_update_team_statistics
 AFTER UPDATE ON matches
 FOR EACH ROW
 WHEN (
-  OLD.finished IS DISTINCT FROM NEW.finished
-  OR (
-    NEW.finished
-    AND (
-      OLD.home_goals IS DISTINCT FROM NEW.home_goals
-      OR OLD.away_goals IS DISTINCT FROM NEW.away_goals
+  NEW.stage = 'group'
+  AND (
+    OLD.finished IS DISTINCT FROM NEW.finished
+    OR (
+      NEW.finished
+      AND (
+        OLD.home_goals IS DISTINCT FROM NEW.home_goals
+        OR OLD.away_goals IS DISTINCT FROM NEW.away_goals
+      )
     )
   )
 )

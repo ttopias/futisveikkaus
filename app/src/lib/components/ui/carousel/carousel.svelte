@@ -44,10 +44,19 @@
     selectedIndexStore.set(api.selectedScrollSnap());
   }
 
+  let registeredApi: CarouselAPI | undefined;
+
+  $: if (registeredApi && registeredApi !== api) {
+    registeredApi.off('select', onSelect);
+    registeredApi.off('reInit', onSelect);
+    registeredApi = undefined;
+  }
+
   $: if (api) {
     onSelect(api);
     api.on('select', onSelect);
     api.on('reInit', onSelect);
+    registeredApi = api;
   }
 
   function handleKeyDown(e: KeyboardEvent) {
@@ -83,7 +92,8 @@
   }
 
   onDestroy(() => {
-    api?.off('select', onSelect);
+    registeredApi?.off('select', onSelect);
+    registeredApi?.off('reInit', onSelect);
   });
 </script>
 

@@ -1,12 +1,34 @@
 import { PUBLIC_SITE_URL } from '$env/static/public';
 import { AuthApiError } from '@supabase/supabase-js';
 import { fail, redirect } from '@sveltejs/kit';
+import { requireAdmin } from '$lib/server/requireAdmin';
 import { safeRedirectPath } from '$lib/server/safeRedirect';
 import { supabaseAdminClient } from '$lib/server/supabaseAdminClient';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ locals: { safeGetSession } }) => {
+async function uniqueInviteFirstName(base: string): Promise<string> {
+  const sanitized = base.replace(/[^a-zA-Z0-9_]/g, '_').slice(0, 40) || 'user';
+  for (let i = 0; i < 20; i += 1) {
+    const candidate = i === 0 ? sanitized : `${sanitized}_${i}`;
+    const { data } = await supabaseAdminClient
+      .from('profiles')
+      .select('id')
+      .eq('first_name', candidate)
+      .maybeSingle();
+    if (!data) return candidate;
+  }
+  return `${sanitized}_${Date.now()}`;
+}
+
+export const load: PageServerLoad = async ({ locals: { safeGetSession }, url }) => {
   const { user } = await safeGetSession();
+  const isInvite = url.searchParams.has('invite');
+
+  if (isInvite) {
+    requireAdmin(user);
+    return;
+  }
+
   if (user) {
     redirect(303, '/');
   }
@@ -118,6 +140,45 @@ export const actions: Actions = {
     }
 
     redirect(303, '/auth/reset/success');
+  },
+
+  invite: async ({ request, locals: { safeGetSession } }) => {
+    const { user } = await safeGetSession();
+    requireAdmin(user);
+
+    const form_data = await request.formData();
+    const email = (form_data.get('email') as string)?.trim();
+
+    if (!email) {
+      return fail(400, {
+        error: 'Sähköposti vaaditaan',
+        email,
+      });
+    }
+
+    const localPart = email.split('@')[0] ?? 'user';
+    const first_name = await uniqueInviteFirstName(localPart);
+
+    const { error } = await supabaseAdminClient.auth.admin.inviteUserByEmail(email, {
+      redirectTo: `${PUBLIC_SITE_URL}/auth?signup`,
+      data: { first_name },
+    });
+
+    if (error) {
+      console.error('Error inviting user:', error);
+      if (error instanceof AuthApiError) {
+        return fail(400, {
+          error: error.message,
+          email,
+        });
+      }
+      return fail(500, {
+        error: 'Server error. Try again later.',
+        email,
+      });
+    }
+
+    return { success: 'Kutsu lähetetty', email };
   },
 
   reset: async ({ request, locals: { supabase } }) => {

@@ -59,13 +59,26 @@ export function parseFixtureCsv(text, sourceTz) {
   const header = parseCsvLine(lines[0]).map((h) => h.toLowerCase());
   const col = (name) => header.findIndex((h) => h.includes(name));
 
+  const requiredColumns = ['match number', 'group', 'round'];
+  const missing = requiredColumns.filter((name) => col(name) < 0);
+  if (missing.length) {
+    throw new Error(
+      `Fixture CSV missing required column(s): ${missing.join(', ')}. Headers: ${header.join(', ')}`,
+    );
+  }
+
+  const matchNumberCol = col('match number');
+  const groupCol = col('group');
+  const roundCol = col('round');
+
   const rows = [];
   for (const line of lines.slice(1)) {
     const c = parseCsvLine(line);
     if (c.length < 6) continue;
-    const matchNumber = Number(c[col('match number')]);
-    const group = c[col('group')] || null;
-    const round = String(c[col('round')] ?? '').toLowerCase();
+    const matchNumber = Number(c[matchNumberCol]);
+    if (!Number.isFinite(matchNumber)) continue;
+    const group = c[groupCol] || null;
+    const round = String(c[roundCol] ?? '').toLowerCase();
     let stage = stageForMatch(matchNumber);
     if (group?.startsWith('Group ')) stage = 'group';
     else if (round.includes('round of 32') || round === '4') stage = 'r32';
