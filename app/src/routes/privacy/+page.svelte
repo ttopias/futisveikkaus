@@ -48,8 +48,8 @@
         <h2 class="text-base font-semibold tracking-tight">Palveluntarjoaja</h2>
         <p class="text-muted-foreground">
           Sovellus ja tietokanta isännöidään Supabasen (Supabase Inc.) pilvipalvelussa. Tiedot
-          tallennetaan EU-alueen tai palveluntarjoajan ilmoittamien alueiden palvelimille.
-          Supabase toimii käsittelijänä rekisterinpitäjän lukuun.
+          tallennetaan EU-alueen tai palveluntarjoajan ilmoittamien alueiden palvelimille. Supabase
+          toimii käsittelijänä rekisterinpitäjän lukuun.
         </p>
       </section>
 
@@ -65,10 +65,10 @@
       <section class="space-y-2">
         <h2 class="text-base font-semibold tracking-tight">Luovutus ja säilytys</h2>
         <p class="text-muted-foreground">
-          Henkilötietoja ei myydä eikä luovuteta markkinointitarkoituksiin. Tietoja voidaan luovuttaa
-          vain lain edellyttämissä tilanteissa tai teknisen palveluntarjoajan (Supabase) käsittelyyn
-          palvelun tuottamiseksi. Tiedot säilytetään niin kauan kuin käyttäjätili on käytössä tai
-          turnauksen tulokset vaativat.
+          Henkilötietoja ei myydä eikä luovuteta markkinointitarkoituksiin. Tietoja voidaan
+          luovuttaa vain lain edellyttämissä tilanteissa tai teknisen palveluntarjoajan (Supabase)
+          käsittelyyn palvelun tuottamiseksi. Tiedot säilytetään niin kauan kuin käyttäjätili on
+          käytössä tai turnauksen tulokset vaativat.
         </p>
       </section>
 

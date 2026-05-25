@@ -71,13 +71,13 @@ Slot codes (`lib/slots.mjs`):
 |------|---------|
 | `1A` | Group A winner |
 | `2B` | Group B runner-up |
-| `3ABCDF` | Best third among groups A, B, C, D, F (points → GD → GF, desc) |
+| `3ABCDF` | Best third among groups A, B, C, D, F (points -> GD -> GF -> FIFA rank) |
 | `winner:73` | Winner of match #73 |
 | `loser:101` | Loser of match #101 |
 
 Finnish labels (e.g. `Lohkon A voittaja`) are derived in the app from slot codes, not stored as team rows.
 
-**Best-third tiebreakers** (FIFA WC 2026 Art. 13, among third-placed teams in a slot’s groups, e.g. `3ABCDF`): (1) points, (2) goal difference, (3) goals scored — each descending. Fair-play conduct score and FIFA ranking are not used.
+**Group / best-third tiebreakers** (among tied teams in a group or in a `3ABCDF` slot): (1) points, (2) goal difference, (3) goals scored — each descending; (4) FIFA rank (`teams.fifa_rank`, lower number = better; `NULL` ranks last).
 
 Static bracket wiring when CSV has “To be announced”: `scripts/bracket-slots.mjs`.
 
@@ -100,7 +100,37 @@ node scripts/scrape-fifa-rankings.mjs --dry-run --env app/.env.local
 node scripts/scrape-fifa-rankings.mjs --write --env app/.env.local
 ```
 
-`--write` needs `PUBLIC_SUPABASE_URL` and `SUPABASE_SECRET_KEY`. Unmapped tournament teams are logged as warnings.
+`--write` needs `PUBLIC_SUPABASE_URL` and `SUPABASE_SECRET_KEY`. Tournament teams missing a FIFA mapping are logged as warnings (non-tournament countries from the API are not logged).
+
+---
+
+## Match results (`update-match-results.mjs`)
+
+Updates **only** `home_goals`, `away_goals`, and `finished` on existing `matches` rows, keyed by `match_number`. Uses the same [Fixture Download UTC CSV](https://fixturedownload.com/download/fifa-world-cup-2026-UTC.csv) as `scrape-wikipedia.mjs`. Does not change teams, slots, kickoff times, or participants.
+
+```bash
+node scripts/update-match-results.mjs --dry-run --env app/.env.local
+node scripts/update-match-results.mjs --write --env app/.env.local
+```
+
+`make update-results` runs the write mode with `app/.env.local`.
+
+### Vercel cron (example)
+
+Add a serverless route that runs the script (or inlines the same Supabase updates) on a schedule, e.g. every hour after kickoff windows:
+
+```json
+{
+  "crons": [
+    {
+      "path": "/api/cron/update-match-results",
+      "schedule": "0 */2 * * *"
+    }
+  ]
+}
+```
+
+Protect the route with `CRON_SECRET` (compare `Authorization: Bearer …` in the handler). The handler can `exec` `node ../scripts/update-match-results.mjs --write` or call Supabase with the service role the same way the script does.
 
 ---
 
@@ -114,7 +144,7 @@ Knockout `home_id` / `away_id` are filled automatically by **`trigger_z_resolve_
 |------|------------------|
 | `1A`, `2B` | Every group-stage match in that group is `finished` |
 | `winner:N`, `loser:N` | Feeder match `N` is finished and not a draw |
-| `3ABCDF` | All groups in the suffix are complete — best third by points → GD → GF (see tiebreakers above) |
+| `3ABCDF` | All groups in the suffix are complete — best third by points -> GD -> GF -> FIFA rank |
 
 Targeted helpers (`resolve_bracket_slots_for_group`, `resolve_bracket_slots_for_feeder`) limit work per trigger row. Full resolver is idempotent (safe to re-run).
 

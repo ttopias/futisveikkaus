@@ -7,11 +7,14 @@
  * Usage: node scripts/test-sql.mjs [--env app/.env.local]
  */
 
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import process from "node:process";
 import {
   connectPgClient,
   createPgClient,
   loadEnvFiles,
+  repoRoot,
 } from "./lib/db-env.mjs";
 
 function parseArgs(argv) {
@@ -263,6 +266,63 @@ async function testTeamStatistics(client, teamIds) {
   );
 }
 
+async function testFifaRankTiebreaker(client) {
+  await client.query(
+    `DELETE FROM guesses WHERE match_id IN (
+       SELECT match_id FROM matches
+       WHERE home_id IN (SELECT team_id FROM teams WHERE "group" IN ('C', 'D', 'E'))
+          OR away_id IN (SELECT team_id FROM teams WHERE "group" IN ('C', 'D', 'E'))
+     );
+     DELETE FROM matches
+     WHERE home_id IN (SELECT team_id FROM teams WHERE "group" IN ('C', 'D', 'E'))
+        OR away_id IN (SELECT team_id FROM teams WHERE "group" IN ('C', 'D', 'E'));
+     DELETE FROM teams WHERE "group" IN ('C', 'D', 'E')`,
+  );
+
+  const { rows } = await client.query(
+    `INSERT INTO teams (country_code, name, "group", win, draw, loss, gf, gaa, fifa_rank)
+     VALUES
+       ('t1', 'Test Tie High', 'C', 2, 0, 0, 4, 2, 50),
+       ('t2', 'Test Tie Low', 'C', 2, 0, 0, 4, 2, 10),
+       ('t3', 'Test Tie Null', 'C', 2, 0, 0, 4, 2, NULL),
+       ('d1', 'Test D1', 'D', 3, 0, 0, 6, 0, 1),
+       ('d2', 'Test D2', 'D', 2, 0, 1, 4, 2, 2),
+       ('d3', 'Test Third A', 'D', 1, 0, 2, 2, 4, 30),
+       ('e1', 'Test E1', 'E', 3, 0, 0, 6, 0, 1),
+       ('e2', 'Test E2', 'E', 2, 0, 1, 4, 2, 2),
+       ('e3', 'Test Third B', 'E', 1, 0, 2, 2, 4, 80)
+     RETURNING team_id, name`,
+  );
+  const byName = Object.fromEntries(rows.map((r) => [r.name, r.team_id]));
+
+  const winner = await queryOne(
+    client,
+    `SELECT group_qualifier_team_id('C', 1) AS team_id`,
+  );
+  assert(
+    winner.team_id === byName["Test Tie Low"],
+    "group rank tie: lower fifa_rank wins (10 beats 50)",
+  );
+
+  const nullLoses = await queryOne(
+    client,
+    `SELECT group_qualifier_team_id('C', 2) AS team_id`,
+  );
+  assert(
+    nullLoses.team_id === byName["Test Tie High"],
+    "group rank tie: NULL fifa_rank ranks last",
+  );
+
+  const bestThird = await queryOne(
+    client,
+    `SELECT best_third_among_groups(ARRAY['D', 'E']) AS team_id`,
+  );
+  assert(
+    bestThird.team_id === byName["Test Third A"],
+    "best third tie: lower fifa_rank among tied thirds",
+  );
+}
+
 async function testBracketResolver(client, teamIds) {
   const a1 = teamIds["Test A1"];
   const a2 = teamIds["Test A2"];
@@ -321,6 +381,7 @@ const tests = [
   { name: "guess points (finish, idempotent, correction)", fn: testGuessPoints },
   { name: "team statistics (draw then correction)", fn: testTeamStatistics },
   { name: "team statistics (home + away aggregation)", fn: testTeamStatisticsHomeAndAway },
+  { name: "FIFA rank tiebreaker (group + best third)", fn: testFifaRankTiebreaker },
   { name: "bracket slots (1A, winner:N, no loop)", fn: testBracketResolver, enableBracketTrigger: true },
 ];
 
@@ -333,6 +394,8 @@ async function run() {
 
   try {
     await connectPgClient(client);
+    const functionsSql = await readFile(path.join(repoRoot, "sql", "functions.sql"), "utf8");
+    await client.query(functionsSql);
     // Remove leftover rows from prior runs (team serials are not rolled back).
     await client.query(`DELETE FROM matches WHERE match_number >= 90000`);
     await client.query(`DELETE FROM teams WHERE name LIKE 'Test %'`);
@@ -352,6 +415,8 @@ async function run() {
         }
         if (fn === testGuessPoints) {
           await fn(client, userId, teamIds);
+        } else if (fn === testFifaRankTiebreaker) {
+          await fn(client);
         } else {
           await fn(client, teamIds);
         }

@@ -94,7 +94,10 @@
                     name={matchParticipant(match, 'home').name}
                     class="h-16 w-auto max-w-full rounded-md"
                   />
-                  <Label class="flex w-full flex-wrap items-center justify-center gap-1 text-xs" for="home_goals-{match.match_id}">
+                  <Label
+                    class="flex w-full flex-wrap items-center justify-center gap-1 text-xs"
+                    for="home_goals-{match.match_id}"
+                  >
                     <span>{matchParticipant(match, 'home').name}</span>
                     {#if matchParticipant(match, 'home').fifa_rank}
                       <Badge variant="secondary" class="px-1.5 py-0 text-[10px] tabular-nums">
@@ -120,7 +123,10 @@
                     name={matchParticipant(match, 'away').name}
                     class="h-16 w-auto max-w-full rounded-md"
                   />
-                  <Label class="flex w-full flex-wrap items-center justify-center gap-1 text-xs" for="away_goals-{match.match_id}">
+                  <Label
+                    class="flex w-full flex-wrap items-center justify-center gap-1 text-xs"
+                    for="away_goals-{match.match_id}"
+                  >
                     <span>{matchParticipant(match, 'away').name}</span>
                     {#if matchParticipant(match, 'away').fifa_rank}
                       <Badge variant="secondary" class="px-1.5 py-0 text-[10px] tabular-nums">

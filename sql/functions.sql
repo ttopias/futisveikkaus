@@ -237,7 +237,8 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- Bracket slot resolution (group qualifiers, KO feeders).
--- Group / best-third tiebreakers: points, goal difference, goals scored (desc only).
+-- Group / best-third tiebreakers: points, goal difference, goals scored (desc),
+-- then FIFA rank (asc; lower number = better; NULL ranks last).
 
 CREATE OR REPLACE FUNCTION group_stage_complete(p_group text)
 RETURNS boolean AS $$
@@ -262,8 +263,8 @@ RETURNS boolean AS $$
     );
 $$ LANGUAGE sql STABLE;
 
--- Group rank (1 = winner, 2 = runner-up, 3 = third) using the same three tiebreakers
--- as best_third_among_groups: points, goal difference, goals scored — all descending.
+-- Group rank (1 = winner, 2 = runner-up, 3 = third) using the same tiebreakers
+-- as best_third_among_groups: points, GD, GF (desc), then fifa_rank (asc, NULLS LAST).
 CREATE OR REPLACE FUNCTION group_qualifier_team_id(p_group text, p_rank int)
 RETURNS int AS $$
     SELECT team_id
@@ -274,7 +275,8 @@ RETURNS int AS $$
                 ORDER BY
                     (t.win * 3 + t.draw) DESC,
                     (t.gf - t.gaa) DESC,
-                    t.gf DESC
+                    t.gf DESC,
+                    t.fifa_rank ASC NULLS LAST
             ) AS rn
         FROM teams t
         WHERE t."group" = p_group
@@ -297,8 +299,7 @@ RETURNS text[] AS $$
 $$ LANGUAGE sql IMMUTABLE;
 
 -- Best third among listed groups (e.g. 3ABCDF slot).
--- Tiebreak order (only): points, goal difference, goals scored — all descending.
--- Fair play, FIFA ranking, and team name are not used.
+-- Tiebreak order: points, goal difference, goals scored (desc), then fifa_rank (asc, NULLS LAST).
 CREATE OR REPLACE FUNCTION best_third_among_groups(p_groups text[])
 RETURNS int AS $$
     SELECT team_id
@@ -308,7 +309,8 @@ RETURNS int AS $$
             t.win,
             t.draw,
             t.gf,
-            t.gaa
+            t.gaa,
+            t.fifa_rank
         FROM unnest(p_groups) AS g(grp)
         INNER JOIN teams t ON t."group" = g.grp
             AND t.team_id = group_qualifier_team_id(g.grp, 3)
@@ -317,7 +319,8 @@ RETURNS int AS $$
     ORDER BY
         (win * 3 + draw) DESC,
         (gf - gaa) DESC,
-        gf DESC
+        gf DESC,
+        fifa_rank ASC NULLS LAST
     LIMIT 1;
 $$ LANGUAGE sql STABLE;
 

@@ -57,9 +57,7 @@ export function hasAnyUserWithMultipleCalculatedGuesses(guesses: GuessRow[]): bo
   return userIdsWithMultipleCalculatedGuesses(guesses).size > 0;
 }
 
-function assignRanksAtStep(
-  totals: { userId: string; points: number }[],
-): Map<string, number> {
+function assignRanksAtStep(totals: { userId: string; points: number }[]): Map<string, number> {
   const sorted = [...totals].sort((a, b) => b.points - a.points);
   const ranks = new Map<string, number>();
   let rank = 1;
@@ -220,4 +218,3 @@ export function datasetStyleForSeriesIndex(index: number) {
     borderWidth: 2.5,
   };
 }
-

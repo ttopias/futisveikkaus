@@ -13,9 +13,11 @@ import { loadEnvFiles } from './lib/db-env.mjs';
 import {
   HEADERS,
   FIFA_CODE_TO_COUNTRY_CODE,
+  NAME_TO_ENGLISH,
+  cleanName,
   englishNameFromFifaEntry,
   fetchEnglishToFinnish,
-  resolveTeamName,
+  toFinnish,
 } from './lib/team-names.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -41,6 +43,14 @@ async function fetchRankings(url = FIFA_RANKINGS_URL) {
   return rows;
 }
 
+/** Map FIFA API name to Finnish without logging unmapped non-tournament countries. */
+function fifaNameToFinnish(english, enToFi) {
+  const cleaned = cleanName(english);
+  if (!cleaned) return null;
+  const canonical = NAME_TO_ENGLISH[cleaned] ?? cleaned;
+  return toFinnish(canonical, enToFi);
+}
+
 function buildRankLookups(rows, enToFi) {
   const byFinnishName = new Map();
   const byCountryCode = new Map();
@@ -48,7 +58,7 @@ function buildRankLookups(rows, enToFi) {
   for (const row of rows) {
     const rank = row.Rank;
     const english = englishNameFromFifaEntry(row);
-    const fiName = resolveTeamName(english, enToFi);
+    const fiName = fifaNameToFinnish(english, enToFi);
     if (fiName) byFinnishName.set(fiName, rank);
 
     const fifaCode = row.IdCountry?.trim();

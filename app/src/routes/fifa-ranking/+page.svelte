@@ -54,7 +54,9 @@
         <Table.Body>
           {#each teams as team (team.team_id)}
             <Table.Row>
-              <Table.Cell class="text-center font-semibold tabular-nums">{team.fifa_rank}</Table.Cell>
+              <Table.Cell class="text-center font-semibold tabular-nums"
+                >{team.fifa_rank}</Table.Cell
+              >
               <Table.Cell class="min-w-0">
                 <div class="flex items-center gap-2">
                   <TeamFlag
