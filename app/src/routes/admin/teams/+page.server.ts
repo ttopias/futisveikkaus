@@ -71,6 +71,13 @@ export const actions: Actions = {
     const country_code = form_data.get('country_code')?.toString();
     const name = form_data.get('name')?.toString();
     const group = form_data.get('group')?.toString();
+
+    if (!team_id || !country_code || !name || !group) {
+      return fail(400, {
+        error: 'Missing required fields: team_id, country_code, name, or group.',
+      });
+    }
+
     const fifaRaw = form_data.get('fifa_rank')?.toString();
     const fifa_rank = fifaRaw === '' || fifaRaw == null ? null : parseInt(fifaRaw, 10);
     if (fifa_rank !== null && (!Number.isFinite(fifa_rank) || fifa_rank < 1)) {

@@ -44,7 +44,7 @@
     <Label for="password2">Vahvista salasana</Label>
     <Input
       id="password2"
-      name="password"
+      name="password_confirm"
       type="password"
       bind:value={password2}
       placeholder="Vahvista salasana"

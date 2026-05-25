@@ -14,7 +14,19 @@
 </script>
 
 {#if href}
-  <a {href} class={classes} {...$$restProps}>
+  <a
+    {href}
+    class={classes}
+    aria-disabled={disabled ? true : undefined}
+    tabindex={disabled ? -1 : undefined}
+    {...$$restProps}
+    on:click={(event) => {
+      if (disabled) {
+        event.preventDefault();
+        return;
+      }
+    }}
+  >
     {#if loading}
       <span
         class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"

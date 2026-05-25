@@ -173,4 +173,4 @@ node scripts/seed-smoke-users.mjs --env app/.env.local
 node scripts/seed-smoke-users.mjs --dry-run --env app/.env.local
 ```
 
-Needs `PUBLIC_SUPABASE_URL` and `SUPABASE_SECRET_KEY`. Default passwords: `SmokeTest2026!User` / `SmokeTest2026!Admin` (override with `SMOKE_USER_PASSWORD` / `SMOKE_ADMIN_PASSWORD`).
+Needs `PUBLIC_SUPABASE_URL` and `SUPABASE_SECRET_KEY`. Set `SMOKE_USER_PASSWORD` and `SMOKE_ADMIN_PASSWORD` before running. For local dev only, you may pass `--allow-default-passwords` (uses built-in test passwords).

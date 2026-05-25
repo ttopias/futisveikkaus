@@ -1,7 +1,9 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { enhance } from '$app/forms';
-  import type { ActionData, PageData } from './$types';
+  import type { PageData } from './$types';
+
+  type GuessFormMessage = { success?: string; error?: string };
   import type { Prediction } from '$lib';
   import AdminNav from '$lib/components/admin/AdminNav.svelte';
   import { Alert } from '$lib/components/ui/alert';
@@ -17,7 +19,7 @@
   import Pencil from 'lucide-svelte/icons/pencil';
 
   export let data: PageData;
-  export let form: ActionData;
+  export let form: GuessFormMessage | undefined;
 
   let guesses: Prediction[] = data.guesses;
   $: guesses = data.guesses;

@@ -47,7 +47,7 @@ CREATE POLICY guesses_select_started_match ON guesses
   USING (
     EXISTS (
       SELECT 1 FROM matches m
-      WHERE m.match_id = match_id
+      WHERE m.match_id = guesses.match_id
         AND m.starts_at <= now()
     )
   );
@@ -58,7 +58,7 @@ CREATE POLICY guesses_insert_own ON guesses
     user_id = auth.uid()
     AND EXISTS (
       SELECT 1 FROM matches m
-      WHERE m.match_id = match_id
+      WHERE m.match_id = guesses.match_id
         AND m.starts_at > now()
         AND (
           (m.stage = 'group' AND NOT all_group_stage_complete())
@@ -74,7 +74,7 @@ CREATE POLICY guesses_update_own ON guesses
     user_id = auth.uid()
     AND EXISTS (
       SELECT 1 FROM matches m
-      WHERE m.match_id = match_id
+      WHERE m.match_id = guesses.match_id
         AND m.starts_at > now()
         AND (
           (m.stage = 'group' AND NOT all_group_stage_complete())
@@ -89,7 +89,7 @@ CREATE POLICY guesses_delete_own ON guesses
     user_id = auth.uid()
     AND EXISTS (
       SELECT 1 FROM matches m
-      WHERE m.match_id = match_id
+      WHERE m.match_id = guesses.match_id
         AND m.starts_at > now()
         AND (
           (m.stage = 'group' AND NOT all_group_stage_complete())

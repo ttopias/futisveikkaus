@@ -16,26 +16,15 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const requireFromApp = createRequire(path.join(repoRoot, 'app', 'package.json'));
 const { createClient } = requireFromApp('@supabase/supabase-js');
 
-const SMOKE_USERS = [
-  {
-    email: 'smoke-user@test.futis.local',
-    password: process.env.SMOKE_USER_PASSWORD ?? 'SmokeTest2026!User',
-    role: 'user',
-    firstName: 'Smoke User',
-  },
-  {
-    email: 'smoke-admin@test.futis.local',
-    password: process.env.SMOKE_ADMIN_PASSWORD ?? 'SmokeTest2026!Admin',
-    role: 'admin',
-    firstName: 'Smoke Admin',
-  },
-];
+const DEFAULT_SMOKE_USER_PASSWORD = 'SmokeTest2026!User';
+const DEFAULT_SMOKE_ADMIN_PASSWORD = 'SmokeTest2026!Admin';
 
 function parseArgs(argv) {
-  const args = { dryRun: false, envPath: null, extra: 0 };
+  const args = { dryRun: false, envPath: null, extra: 0, allowDefaultPasswords: false };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === '--dry-run') args.dryRun = true;
+    else if (arg === '--allow-default-passwords') args.allowDefaultPasswords = true;
     else if (arg === '--env') {
       args.envPath = argv[i + 1];
       if (!args.envPath || args.envPath.startsWith('--')) throw new Error('Missing value for --env');
@@ -46,10 +35,11 @@ function parseArgs(argv) {
       args.extra = n;
       i += 1;
     } else if (arg === '--help' || arg === '-h') {
-      console.log(`Usage: node scripts/seed-smoke-users.mjs [--dry-run] [--env <path>] [--extra N]
+      console.log(`Usage: node scripts/seed-smoke-users.mjs [--dry-run] [--env <path>] [--extra N] [--allow-default-passwords]
 
 Creates smoke-user@test.futis.local and smoke-admin@test.futis.local.
 --extra N adds smoke-extra-1@... through smoke-extra-N@... (user role).
+Set SMOKE_USER_PASSWORD and SMOKE_ADMIN_PASSWORD, or pass --allow-default-passwords for local dev only.
 `);
       process.exit(0);
     } else {
@@ -66,6 +56,39 @@ function getAdminClient() {
     throw new Error('Set PUBLIC_SUPABASE_URL and SUPABASE_SECRET_KEY in env.');
   }
   return createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } });
+}
+
+function resolveSmokePasswords(allowDefaultPasswords) {
+  const userPassword = process.env.SMOKE_USER_PASSWORD?.trim();
+  const adminPassword = process.env.SMOKE_ADMIN_PASSWORD?.trim();
+
+  if (!allowDefaultPasswords && (!userPassword || !adminPassword)) {
+    throw new Error(
+      'Set SMOKE_USER_PASSWORD and SMOKE_ADMIN_PASSWORD, or pass --allow-default-passwords for local dev only.',
+    );
+  }
+
+  return {
+    userPassword: userPassword || DEFAULT_SMOKE_USER_PASSWORD,
+    adminPassword: adminPassword || DEFAULT_SMOKE_ADMIN_PASSWORD,
+  };
+}
+
+function buildSmokeUsers({ userPassword, adminPassword }) {
+  return [
+    {
+      email: 'smoke-user@test.futis.local',
+      password: userPassword,
+      role: 'user',
+      firstName: 'Smoke User',
+    },
+    {
+      email: 'smoke-admin@test.futis.local',
+      password: adminPassword,
+      role: 'admin',
+      firstName: 'Smoke Admin',
+    },
+  ];
 }
 
 async function findUserByEmail(admin, email) {
@@ -115,15 +138,16 @@ async function upsertSmokeUser(admin, { email, password, role, firstName }, dryR
 }
 
 async function run() {
-  const { dryRun, envPath, extra } = parseArgs(process.argv.slice(2));
+  const { dryRun, envPath, extra, allowDefaultPasswords } = parseArgs(process.argv.slice(2));
   await loadEnvFiles(envPath);
   const admin = getAdminClient();
+  const { userPassword, adminPassword } = resolveSmokePasswords(allowDefaultPasswords);
 
-  const users = [...SMOKE_USERS];
+  const users = [...buildSmokeUsers({ userPassword, adminPassword })];
   for (let i = 1; i <= extra; i += 1) {
     users.push({
       email: `smoke-extra-${i}@test.futis.local`,
-      password: process.env.SMOKE_USER_PASSWORD ?? 'SmokeTest2026!User',
+      password: userPassword,
       role: 'user',
       firstName: `Smoke Extra ${i}`,
     });

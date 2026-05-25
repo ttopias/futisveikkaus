@@ -51,7 +51,7 @@ CREATE TABLE matches (
 
 CREATE TABLE profiles (
     id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-    first_name text NOT NULL
+    first_name text NOT NULL UNIQUE
 );
 
 CREATE TABLE guesses (

@@ -123,6 +123,13 @@ export const actions: Actions = {
   reset: async ({ request, locals: { supabase } }) => {
     const form_data = await request.formData();
     const password = form_data.get('password') as string;
+    const password_confirm = form_data.get('password_confirm') as string;
+
+    if (!password || password !== password_confirm) {
+      return fail(400, {
+        error: 'Salasanat eivät täsmää',
+      });
+    }
 
     const { error } = await supabase.auth.updateUser({
       password,

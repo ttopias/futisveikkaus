@@ -16,7 +16,7 @@ export function isMatchStage(stage: string | null | undefined): stage is MatchSt
 export const STAGE_LABELS_FI: Record<Exclude<MatchStage, 'group'>, string> = {
   r32: 'R32',
   r16: 'R16',
-  qf: 'Välierä',
+  qf: 'Puolivälierä',
   sf: 'Semifinaali',
   third: 'Pronssiottelu',
   final: 'Finaali',

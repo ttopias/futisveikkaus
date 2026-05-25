@@ -42,8 +42,7 @@
   const tableClass =
     'table-fixed w-full text-xs md:text-xs lg:text-sm [&_th]:h-auto [&_th]:px-1.5 [&_th]:py-2 lg:[&_th]:h-12 lg:[&_th]:px-4 lg:[&_th]:py-3 [&_td]:px-1.5 [&_td]:py-2 lg:[&_td]:px-4 lg:[&_td]:py-4';
   const tableFlagClass = 'h-4 w-5 shrink-0 rounded-sm lg:h-5 lg:w-7';
-  const tableTeamNameClass =
-    'min-w-0 truncate text-xs leading-tight text-foreground lg:text-sm';
+  const tableTeamNameClass = 'min-w-0 truncate text-xs leading-tight text-foreground lg:text-sm';
   const groupColClass = 'w-[15%] lg:w-[11%]';
   const dateColClass = 'hidden w-[11%] whitespace-nowrap lg:table-cell';
   const timeColClass = 'hidden w-[8%] whitespace-nowrap tabular-nums lg:table-cell';
@@ -75,11 +74,7 @@
             {@const home = matchParticipant(match, 'home')}
             {@const away = matchParticipant(match, 'away')}
             <li>
-              <Button
-                href={matchHref(match.match_id)}
-                variant="ghost"
-                class={matchCardBtnClass}
-              >
+              <Button href={matchHref(match.match_id)} variant="ghost" class={matchCardBtnClass}>
                 <div class="mb-2 flex w-full items-center justify-between gap-2">
                   <Badge variant="outline" class={stageBadgeClass}>
                     {#if match.groupStage}
@@ -193,9 +188,7 @@
                   <Table.Cell class={cn('text-right', teamColClass)}>
                     {#if away}
                       <div class="flex min-w-0 items-center justify-end gap-1 lg:gap-2">
-                        <span
-                          class={cn(tableTeamNameClass, 'flex-1 text-right')}
-                          title={away.name}
+                        <span class={cn(tableTeamNameClass, 'flex-1 text-right')} title={away.name}
                           >{away.name}</span
                         >
                         <TeamFlag
