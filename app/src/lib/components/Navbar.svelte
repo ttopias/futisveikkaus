@@ -16,7 +16,6 @@
   import LogOut from 'lucide-svelte/icons/log-out';
   import User from 'lucide-svelte/icons/user';
   import Menu from 'lucide-svelte/icons/menu';
-  import ClipboardList from 'lucide-svelte/icons/clipboard-list';
   import type { ComponentType } from 'svelte';
   import { Button, buttonVariants } from '$lib/components/ui/button';
   import { Separator } from '$lib/components/ui/separator';
@@ -73,17 +72,10 @@
 
   const adminLinks: NavItem[] = [
     {
-      href: '/admin/matches',
-      label: 'Otteluohjelma',
-      icon: Calendar,
-      match: (p) => p === '/admin/matches',
-    },
-    { href: '/admin/teams', label: 'Joukkueet', icon: Users, match: (p) => p === '/admin/teams' },
-    {
-      href: '/admin/guesses',
-      label: 'Arvaukset',
-      icon: ClipboardList,
-      match: (p) => p === '/admin/guesses',
+      href: '/admin',
+      label: 'Ylläpito',
+      icon: Shield,
+      match: (p) => p.startsWith('/admin'),
     },
   ];
 

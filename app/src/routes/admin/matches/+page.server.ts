@@ -94,7 +94,7 @@ export const actions: Actions = {
       starts_at,
       home_id,
       away_id,
-      success: 'Match created succesfully',
+      success: 'Ottelu lisätty',
     };
   },
 
@@ -132,7 +132,7 @@ export const actions: Actions = {
     }
 
     return {
-      success: 'Match updated successfully',
+      success: 'Ottelu päivitetty',
       match_id,
       starts_at,
       home_goals,
@@ -167,7 +167,7 @@ export const actions: Actions = {
 
     return {
       match_id,
-      success: 'Match deleted succesfully',
+      success: 'Ottelu poistettu',
     };
   },
 };

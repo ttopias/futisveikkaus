@@ -71,12 +71,18 @@ export const actions: Actions = {
     const country_code = form_data.get('country_code')?.toString();
     const name = form_data.get('name')?.toString();
     const group = form_data.get('group')?.toString();
+    const fifaRaw = form_data.get('fifa_rank')?.toString();
+    const fifa_rank = fifaRaw === '' || fifaRaw == null ? null : parseInt(fifaRaw, 10);
+    if (fifa_rank !== null && (!Number.isFinite(fifa_rank) || fifa_rank < 1)) {
+      return fail(400, { error: 'Virheellinen FIFA-sijoitus' });
+    }
     const res = await supabaseAdminClient
       .from('teams')
       .update({
         country_code: country_code,
         name: name,
         group: group,
+        fifa_rank,
       })
       .match({ team_id });
 
