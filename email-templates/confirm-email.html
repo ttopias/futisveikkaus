@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <title>Sähköpostiosoitteen vahvistaminen</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f4f8f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;">
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#f4f8f6;">
+    <tr>
+      <td align="center" style="padding:32px 16px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:600px;background-color:#ffffff;border-radius:12px;border:1px solid #d9e8e2;overflow:hidden;">
+          <tr>
+            <td style="background-color:#e8f3ef;padding:28px 32px 24px;text-align:center;border-bottom:1px solid #d9e8e2;">
+              <img src="{{ .SiteURL }}/football.png" width="56" height="56" alt="Futisveikkaus" style="display:block;margin:0 auto 12px;border:0;border-radius:12px;" />
+              <p style="margin:0;font-size:22px;font-weight:700;color:#125a47;letter-spacing:-0.02em;line-height:1.2;">Futisveikkaus</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:32px;">
+              <h1 style="margin:0 0 16px;font-size:24px;font-weight:700;color:#1a3329;line-height:1.3;">Vahvista sähköpostiosoitteesi</h1>
+              <p style="margin:0 0 16px;font-size:16px;line-height:1.6;color:#3d4f48;">Terve {{ if .Email }} <span style="color:#125a47;">{{ .Email }}</span>{{ end }},</p>
+              <p style="margin:0 0 24px;font-size:16px;line-height:1.6;color:#3d4f48;">Vahvista sähköpostiosoitteesi, paras voittakoon.</p>
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                <tr>
+                  <td align="center" style="padding:0 0 24px;">
+                    <a href="{{ .ConfirmationURL }}" style="display:inline-block;background-color:#125a47;color:#ffffff;font-size:16px;font-weight:600;text-decoration:none;padding:14px 32px;border-radius:8px;line-height:1.2;mso-padding-alt:0;">Vahvista sähköposti</a>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:0 0 8px;font-size:14px;line-height:1.5;color:#5c6b65;">Voit myös käyttää vahvistuskoodia sovelluksessa:</p>
+              <p style="margin:0 0 24px;font-size:22px;font-weight:700;letter-spacing:0.2em;color:#125a47;font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;">{{ .Token }}</p>
+              <p style="margin:0;font-size:13px;line-height:1.5;color:#5c6b65;">Linkki ja koodi vanhenevat pian. Jos et rekisteröitynyt, voit jättää tämän viestin huomiotta.</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:20px 32px 28px;background-color:#f7faf9;border-top:1px solid #d9e8e2;">
+              <p style="margin:0 0 8px;font-size:12px;line-height:1.5;color:#5c6b65;">Painike ei toimi? Kopioi tämä osoite selaimeen:</p>
+              <p style="margin:0 0 16px;font-size:12px;line-height:1.5;word-break:break-all;"><a href="{{ .ConfirmationURL }}" style="color:#125a47;text-decoration:underline;">{{ .ConfirmationURL }}</a></p>
+              <p style="margin:0;font-size:12px;line-height:1.5;color:#8a9a94;text-align:center;">© Futisveikkaus · <a href="{{ .SiteURL }}" style="color:#125a47;text-decoration:none;">{{ .SiteURL }}</a></p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

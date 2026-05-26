@@ -1,26 +1,24 @@
 <script lang="ts">
   import { page } from '$app/stores';
+  import * as Card from '$lib/components/ui/card';
+  import { Button } from '$lib/components/ui/button';
 </script>
 
-<section class="container grid items-center gap-6">
-  <div class="flex max-w-[980px] flex-col items-start gap-2">
-    {#if $page.status === 404}
-      <h1 class="text-3xl font-extrabold leading-tight tracking-tighter md:text-4xl">
-        Sivua ei löytynyt.
-      </h1>
-      <p class="max-w-[700px] text-lg text-muted-foreground">
-        <a href="/" class="underline">Takaisin</a>
-      </p>
-    {:else}
-      <h1 class="text-3xl font-extrabold leading-tight tracking-tighter md:text-4xl">
-        Jotain meni pieleen.
-      </h1>
-      <p class="max-w-[700px] text-lg text-muted-foreground">
-        Selvitämme asiaa. Ole hyvä ja yritä myöhemmin uudelleen.
-      </p>
-      <p class="max-w-[700px] text-lg text-muted-foreground">
-        <a href="/" class="underline">Takaisin</a>
-      </p>
-    {/if}
-  </div>
-</section>
+<div class="flex w-full justify-center px-4 py-8">
+  <Card.Root class="w-full max-w-lg shadow-md">
+    <Card.Header>
+      {#if $page.status === 404}
+        <Card.Title>Sivua ei löytynyt</Card.Title>
+        <p class="text-sm text-muted-foreground">
+          <a href="/" class="text-primary hover:underline">Takaisin</a>
+        </p>
+      {:else}
+        <Card.Title>Jotain meni pieleen</Card.Title>
+        <p class="text-sm text-muted-foreground">Selvitämme asiaa. Yritä myöhemmin uudelleen.</p>
+        <a href="/">
+          <Button variant="link" class="mt-2 px-0" type="button">Takaisin</Button>
+        </a>
+      {/if}
+    </Card.Header>
+  </Card.Root>
+</div>

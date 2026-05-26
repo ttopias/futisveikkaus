@@ -1,100 +1,125 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
+  import Time from 'svelte-time';
+  import { matchParticipant } from '$lib/match-participants';
+  import TeamFlag from '$lib/components/TeamFlag.svelte';
+  import { Button } from '$lib/components/ui/button';
+  import * as Card from '$lib/components/ui/card';
+  import * as Table from '$lib/components/ui/table';
+  import * as ScrollArea from '$lib/components/ui/scroll-area';
   import type { Match, Prediction } from '$lib/index';
-  import type { User } from '@supabase/supabase-js';
   import type { PageData } from './$types';
 
   export let data: PageData;
   let guesses: Prediction[] = data?.guesses ?? [];
   let match: Match | null = data?.match;
-  let user: User = data?.user;
+  $: canViewGuesses = data?.canViewGuesses ?? false;
 </script>
 
-<div
-  class="card glass h-full relative carousel carousel-center m-4 p-4 border-inherit shadow-lg rounded-xl"
->
-  <div class="card-content"></div>
-  {#if !match || !guesses || guesses.length === 0 || new Date(match.predictable_until) > new Date()}
-    <h1>Yritäppä myöhemmin uudelleen...</h1>
+<div class="mx-auto w-full min-w-0 max-w-2xl">
+  <Button variant="ghost" size="sm" class="mb-4" type="button" on:click={() => goto('/matches')}>
+    ← Takaisin otteluihin
+  </Button>
+
+  {#if !match}
+    <Card.Root>
+      <Card.Content class="py-8 text-center">
+        <p>Ottelua ei löytynyt.</p>
+      </Card.Content>
+    </Card.Root>
+  {:else if !canViewGuesses}
+    <Card.Root>
+      <Card.Content class="py-8 text-center">
+        <p>Arvaukset näkyvät ottelun alkaessa.</p>
+      </Card.Content>
+    </Card.Root>
   {:else}
-    <div class="p-4 text-center">
-      <div class="text-lg font-semibold mb-2">
-        {#if match?.groupStage}
-          Lohko {match.group}
-        {:else}
-          {match.group}
-        {/if}
-      </div>
-
-      <div class="text-lg font-semibold mb-2">
-        {new Date(match.date).toLocaleDateString()} klo {match.time}
-      </div>
-
-      <div class="flex gap-12 justify-between items-center mb-4">
-        <div class="flex items-center gap-2">
-          <img
-            class="h-8 w-8 rounded-full"
-            src={`../flags/${match.home.country_code}.svg`}
-            alt="{match.home.name} flag"
-          />
-          <span>{match.home.name}</span>
-        </div>
-
-        <div class="flex items-center gap-2">
-          <span>{match.away.name}</span>
-          <img
-            class="h-8 w-8 rounded-full"
-            src={`../flags/${match.away.country_code}.svg`}
-            alt="{match.away.name} flag"
-          />
-        </div>
-      </div>
-
-      <div class="flex justify-center gap-4 text-bold text-lg">
-        {#if match?.finished}
-          <div class="">{match.home_goals}</div>
-          <div class="">-</div>
-          <div class="">{match.away_goals}</div>
-        {:else}
-          {' '}
-        {/if}
-      </div>
-    </div>
-
-    <table>
-      <thead>
-        <tr class="text-bold text-left">
-          <th>Nimi</th>
-          <th class="text-center">Arvaus</th>
-          {#if match?.finished}
-            <th class="text-center">Pisteet</th>
+    <Card.Root class="shadow-md">
+      <Card.Header class="text-center">
+        <Card.Title class="text-lg">
+          {#if match?.groupStage}
+            Lohko {match.group}
+          {:else}
+            {match.group}
           {/if}
-        </tr>
-      </thead>
-      <tbody>
-        {#each guesses as guess}
-          <tr class={`${guess.user?.first_name === user.user_metadata.first_name ? 'glass' : ''}`}>
-            <td>{guess.user?.first_name}</td>
-            <td class="text-center">{guess.home_goals} - {guess.away_goals}</td>
-            {#if match?.finished}
-              <td class="text-center">{guess.points}</td>
-            {/if}
-          </tr>
-        {/each}
-      </tbody>
-    </table>
-  {/if}
+        </Card.Title>
+        <p class="text-sm text-muted-foreground">
+          <Time timestamp={match.starts_at} format="DD.MM.YYYY" />
+          klo
+          <Time timestamp={match.starts_at} format="HH:mm" />
+        </p>
+      </Card.Header>
 
-  <button class="absolute top-4 left-4" on:click={() => goto('/matches')}>
-    <svg
-      class="h-8 w-8 text-gray-500 hover:text-gray-700"
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"
-      ></path>
-    </svg>
-  </button>
+      <Card.Content class="space-y-4">
+        <div class="flex flex-col items-center justify-between gap-4 sm:flex-row">
+          <div class="flex items-center gap-2">
+            <TeamFlag
+              countryCode={matchParticipant(match, 'home').country_code}
+              name={matchParticipant(match, 'home').name}
+              width={32}
+              height={32}
+              class="h-8 w-8 rounded-full object-cover"
+            />
+            <span class="font-medium">{matchParticipant(match, 'home').name}</span>
+          </div>
+
+          <div class="text-xl font-bold tabular-nums">
+            {#if match?.finished}
+              {match.home_goals} – {match.away_goals}
+            {:else}
+              vs
+            {/if}
+          </div>
+
+          <div class="flex items-center gap-2">
+            <span class="font-medium">{matchParticipant(match, 'away').name}</span>
+            <TeamFlag
+              countryCode={matchParticipant(match, 'away').country_code}
+              name={matchParticipant(match, 'away').name}
+              width={32}
+              height={32}
+              class="h-8 w-8 rounded-full object-cover"
+            />
+          </div>
+        </div>
+
+        {#if guesses.length === 0}
+          <p class="text-center text-muted-foreground">
+            Kukaan ei ole vielä arvannut tätä ottelua.
+          </p>
+        {:else}
+          <ScrollArea.Root orientation="horizontal">
+            <Table.Root>
+              <Table.Header>
+                <Table.Row>
+                  <Table.Head>Nimi</Table.Head>
+                  <Table.Head class="text-center">Arvaus</Table.Head>
+                  {#if match?.finished}
+                    <Table.Head class="text-center">Pisteet</Table.Head>
+                  {/if}
+                </Table.Row>
+              </Table.Header>
+              <Table.Body>
+                {#each guesses as guess}
+                  <Table.Row
+                    class={guess.profile?.first_name === data.myProfile?.first_name
+                      ? 'bg-primary/10'
+                      : ''}
+                  >
+                    <Table.Cell class="font-medium">{guess.profile?.first_name}</Table.Cell>
+                    <Table.Cell class="text-center tabular-nums"
+                      >{guess.home_goals} – {guess.away_goals}</Table.Cell
+                    >
+                    {#if match?.finished}
+                      <Table.Cell class="text-center font-semibold">{guess.points}</Table.Cell>
+                    {/if}
+                  </Table.Row>
+                {/each}
+              </Table.Body>
+            </Table.Root>
+          </ScrollArea.Root>
+        {/if}
+      </Card.Content>
+    </Card.Root>
+  {/if}
 </div>

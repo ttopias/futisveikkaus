@@ -1,35 +1,49 @@
 import { error, fail } from '@sveltejs/kit';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Actions, PageServerLoad } from './$types';
 import type { Match, Prediction } from '$lib/index';
+import { filterMatchesByVisibleStage, isMatchInVisibleStage } from '$lib/tournament-stage';
+import { MATCH_PARTICIPANT_DISPLAY_SELECT } from '$lib/match-participants';
 import {
-  addGroupStageDetails,
-  addGroupStageDetailsPreds,
-  myUser,
-  sortByDateTime,
-  sortPredsByDateTime,
-} from '$lib/utils';
+  enrichMatchesWithStageDisplay,
+  enrichPredictionsWithStageDisplay,
+  isMatchPredictable,
+} from '$lib/stages';
+import type { MatchStage } from '$lib/stages';
+import { sortByDateTime, sortPredsByDateTime } from '$lib/utils';
 
-export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession } }) => {
-  const { user } = await safeGetSession();
-
+export const load: PageServerLoad = async ({
+  locals: { supabase, safeGetSession, getVisibleMatchStage },
+}) => {
   let predictions: Prediction[] = [];
   let predictableMatches: Match[] = [];
+  let visibleMatchStage: MatchStage;
 
-  if (!myUser(user)) {
+  let user: Awaited<ReturnType<typeof safeGetSession>>['user'];
+  try {
+    const [sessionResult, stage] = await Promise.all([safeGetSession(), getVisibleMatchStage()]);
+    user = sessionResult.user;
+    visibleMatchStage = stage;
+  } catch (e) {
+    error(500, e instanceof Error ? e.message : 'Failed to load tournament stage');
+  }
+
+  if (!user) {
     error(401, 'Unauthorized');
   }
 
-  let res = await supabase.from('guesses').select(
-    `
+  const [res, sec_res, tournamentRes] = await Promise.all([
+    supabase
+      .from('guesses')
+      .select(
+        `
     guess_id,
     user_id,
     match:match_id (
       match_id,
-      predictable_until,
-      date,
-      time,
-      home:home_id (team_id, country_code, name, group, win, draw, loss, gf, gaa),
-      away:away_id (team_id, country_code, name, group, win, draw, loss, gf, gaa),
+      stage,
+      starts_at,
+      ${MATCH_PARTICIPANT_DISPLAY_SELECT},
       home_goals,
       away_goals,
       finished
@@ -39,76 +53,160 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
     points,
     points_calculated
   `,
-  );
-
-  if (res.error) {
-    console.error('Error fetching predictions:', res.error);
-    return { user, predictions, predictableMatches };
-  }
-
-  predictions = res.data as unknown as Prediction[];
-  predictions = predictions.filter((p) => p.user_id === user.id);
-
-  const predictionsMade = predictions?.map((p: Prediction) => p.match.match_id);
-
-  let query = supabase
-    .from('matches')
-    .select(
-      `
+      )
+      .eq('user_id', user.id),
+    supabase
+      .from('matches')
+      .select(
+        `
   match_id,
-  predictable_until,
-  date,
-  time,
-  home:home_id (team_id, country_code, name, group, win, draw, loss, gf, gaa),
-  away:away_id (team_id, country_code, name, group, win, draw, loss, gf, gaa),
+  stage,
+  starts_at,
+  ${MATCH_PARTICIPANT_DISPLAY_SELECT},
   home_goals,
   away_goals,
   finished
 `,
-    )
-    .order('date', { ascending: true });
+      )
+      .eq('stage', visibleMatchStage)
+      .order('starts_at', { ascending: true }),
+    supabase
+      .from('matches')
+      .select('starts_at')
+      .not('starts_at', 'is', null)
+      .order('starts_at', { ascending: true })
+      .limit(1)
+      .maybeSingle(),
+  ]);
 
-  if (predictionsMade && predictionsMade.length > 0) {
-    query = query.not('match_id', 'in', `(${predictionsMade.join(',')})`);
+  if (res.error) {
+    error(500, res.error.message);
   }
-
-  const sec_res = await query;
-
   if (sec_res.error) {
-    console.error('Error fetching predictable matches:', error);
-    return { user, predictions, predictableMatches };
+    error(500, sec_res.error.message);
   }
 
-  predictableMatches = sec_res.data as unknown as Match[];
+  const rawPredictions = (res.data ?? []) as unknown as Prediction[];
+  predictions = rawPredictions.filter(
+    (p) => p.match && !p.match.finished && isMatchInVisibleStage(p.match, visibleMatchStage),
+  );
+
+  const predictionsMade = new Set(predictions.map((p: Prediction) => p.match.match_id));
+
+  predictableMatches = (sec_res.data as unknown as Match[]).filter(
+    (m) => !predictionsMade.has(m.match_id),
+  );
+  predictableMatches = filterMatchesByVisibleStage(predictableMatches, visibleMatchStage);
   predictableMatches = predictableMatches
-    .filter((m: Match) => new Date(m.predictable_until) > new Date())
+    .filter((m: Match) => isMatchPredictable(m))
     .map((m: Match, i: number) => {
       m.index = i;
       return m;
     });
 
-  predictableMatches = sortByDateTime(addGroupStageDetails(predictableMatches));
-  predictions = predictions.filter((p) => p.match.finished === false);
-  predictions = sortPredsByDateTime(addGroupStageDetailsPreds(predictions));
+  predictableMatches = sortByDateTime(enrichMatchesWithStageDisplay(predictableMatches));
+  predictions = sortPredsByDateTime(enrichPredictionsWithStageDisplay(predictions));
 
-  return { user, predictions, predictableMatches };
+  return {
+    user,
+    predictions,
+    predictableMatches,
+    visibleMatchStage,
+    tournamentStartsAt: tournamentRes.data?.starts_at ?? null,
+  };
 };
 
+async function assertMatchPredictable(
+  supabase: SupabaseClient,
+  match_id: FormDataEntryValue | null,
+  visibleMatchStage: MatchStage,
+) {
+  if (!match_id) {
+    return fail(400, { message: 'Missing match_id' });
+  }
+
+  const { data: match, error: matchError } = await supabase
+    .from('matches')
+    .select('match_id, starts_at, stage')
+    .eq('match_id', match_id)
+    .maybeSingle();
+
+  if (matchError || !match) {
+    return fail(400, { message: 'Match not found' });
+  }
+
+  if (!isMatchInVisibleStage(match, visibleMatchStage)) {
+    return fail(403, { message: 'This match is not open for predictions yet' });
+  }
+
+  if (!isMatchPredictable(match)) {
+    return fail(403, { message: 'Predictions are closed for this match' });
+  }
+
+  return null;
+}
+
+async function assertGuessPredictable(
+  supabase: SupabaseClient,
+  guess_id: FormDataEntryValue | null,
+  user_id: string,
+  visibleMatchStage: MatchStage,
+) {
+  if (!guess_id) {
+    return fail(400, { message: 'Missing guess_id' });
+  }
+
+  const { data: guess, error: guessError } = await supabase
+    .from('guesses')
+    .select('guess_id, match:match_id (match_id, starts_at, stage)')
+    .eq('guess_id', guess_id)
+    .eq('user_id', user_id)
+    .maybeSingle();
+
+  if (guessError || !guess) {
+    return fail(404, { message: 'Prediction not found' });
+  }
+
+  const match = guess.match as unknown as {
+    match_id: number;
+    starts_at: string;
+    stage?: string;
+  };
+
+  if (!isMatchInVisibleStage(match, visibleMatchStage)) {
+    return fail(403, { message: 'This match is not open for predictions yet' });
+  }
+  if (!isMatchPredictable(match)) {
+    return fail(403, { message: 'Predictions are closed for this match' });
+  }
+
+  return null;
+}
+
 export const actions: Actions = {
-  create: async ({ request, locals: { supabase, safeGetSession } }) => {
+  create: async ({ request, locals: { supabase, safeGetSession, getVisibleMatchStage } }) => {
     const { user } = await safeGetSession();
 
     if (!user) {
-      return {
-        status: 401,
-        message: 'Unauthorized',
-      };
+      return fail(401, { message: 'Unauthorized' });
+    }
+
+    let visibleMatchStage: MatchStage;
+    try {
+      visibleMatchStage = await getVisibleMatchStage();
+    } catch (e) {
+      return fail(500, {
+        message: e instanceof Error ? e.message : 'Failed to load tournament stage',
+      });
     }
 
     const form_data = await request.formData();
     const match_id = form_data.get('match_id');
     const home_goals = parseInt(form_data.get('home_goals')?.toString() || '0');
     const away_goals = parseInt(form_data.get('away_goals')?.toString() || '0');
+
+    const deadlineCheck = await assertMatchPredictable(supabase, match_id, visibleMatchStage);
+    if (deadlineCheck) return deadlineCheck;
 
     if (!match_id) {
       return fail(400, {
@@ -119,18 +217,18 @@ export const actions: Actions = {
       });
     }
 
-    const { error } = await supabase.from('guesses').insert({
+    const { error: insertError } = await supabase.from('guesses').insert({
       user_id: user.id,
       match_id: match_id,
       home_goals: home_goals,
       away_goals: away_goals,
     });
 
-    if (error) {
-      console.error('Error creating prediction:', error);
+    if (insertError) {
+      console.error('Error creating prediction:', insertError);
       return fail(422, {
         message: 'Error creating prediction',
-        error: error,
+        error: insertError,
       });
     }
 
@@ -140,20 +238,34 @@ export const actions: Actions = {
     };
   },
 
-  update: async ({ request, locals: { supabase, safeGetSession } }) => {
+  update: async ({ request, locals: { supabase, safeGetSession, getVisibleMatchStage } }) => {
     const { user } = await safeGetSession();
 
     if (!user) {
-      return {
-        status: 401,
-        message: 'Unauthorized',
-      };
+      return fail(401, { message: 'Unauthorized' });
+    }
+
+    let visibleMatchStage: MatchStage;
+    try {
+      visibleMatchStage = await getVisibleMatchStage();
+    } catch (e) {
+      return fail(500, {
+        message: e instanceof Error ? e.message : 'Failed to load tournament stage',
+      });
     }
 
     const form_data = await request.formData();
     const guess_id = form_data.get('guess_id');
     const home_goals = form_data.get('home_goals');
     const away_goals = form_data.get('away_goals');
+
+    const deadlineCheck = await assertGuessPredictable(
+      supabase,
+      guess_id,
+      user.id,
+      visibleMatchStage,
+    );
+    if (deadlineCheck) return deadlineCheck;
 
     if (!guess_id || !home_goals || !away_goals) {
       return fail(400, {
@@ -164,7 +276,7 @@ export const actions: Actions = {
       });
     }
 
-    const { error } = await supabase
+    const { error: updateError } = await supabase
       .from('guesses')
       .update({
         home_goals: home_goals,
@@ -173,11 +285,11 @@ export const actions: Actions = {
       .eq('guess_id', guess_id)
       .eq('user_id', user.id);
 
-    if (error) {
-      console.error('Error updating prediction:', error);
+    if (updateError) {
+      console.error('Error updating prediction:', updateError);
       return fail(422, {
         message: 'Error updating prediction',
-        error: error,
+        error: updateError,
       });
     }
 
@@ -189,19 +301,33 @@ export const actions: Actions = {
     };
   },
 
-  delete: async ({ request, locals: { supabase, safeGetSession } }) => {
+  delete: async ({ request, locals: { supabase, safeGetSession, getVisibleMatchStage } }) => {
     const { user } = await safeGetSession();
 
     if (!user) {
-      return {
-        status: 401,
-        message: 'Unauthorized',
-      };
+      return fail(401, { message: 'Unauthorized' });
+    }
+
+    let visibleMatchStage: MatchStage;
+    try {
+      visibleMatchStage = await getVisibleMatchStage();
+    } catch (e) {
+      return fail(500, {
+        message: e instanceof Error ? e.message : 'Failed to load tournament stage',
+      });
     }
 
     const form_data = await request.formData();
     const guess_id = form_data.get('guess_id');
-    console.log('guess_id :>> ', guess_id);
+
+    const deadlineCheck = await assertGuessPredictable(
+      supabase,
+      guess_id,
+      user.id,
+      visibleMatchStage,
+    );
+    if (deadlineCheck) return deadlineCheck;
+
     if (!guess_id) {
       return fail(400, {
         message: 'Missing required fields',
@@ -209,17 +335,17 @@ export const actions: Actions = {
       });
     }
 
-    const { error } = await supabase
+    const { error: deleteError } = await supabase
       .from('guesses')
       .delete()
       .eq('guess_id', guess_id)
       .eq('user_id', user.id);
-    console.log('error :>> ', error);
-    if (error) {
-      console.error('Error deleting prediction:', error);
+
+    if (deleteError) {
+      console.error('Error deleting prediction:', deleteError);
       return fail(422, {
         message: 'Error deleting prediction',
-        error: error,
+        error: deleteError,
       });
     }
 

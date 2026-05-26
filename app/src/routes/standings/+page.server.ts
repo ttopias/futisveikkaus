@@ -1,7 +1,8 @@
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import type { Prediction, User } from '$lib/index';
-import { groupByUser, sortPredsByDateTime, transformDataForChart } from '$lib/utils';
+import type { User } from '$lib/index';
+import { buildStandingsChartData, shouldShowStandingsCharts } from '$lib/standings-chart';
+import { supabaseAdminClient } from '$lib/server/supabaseAdminClient';
 
 export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession } }) => {
   const { user } = await safeGetSession();
@@ -9,53 +10,49 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
   if (!user) {
     error(401, 'Unauthorized');
   }
-  let standings = [] as User[];
-  let predictions = [] as Prediction[];
 
-  const res = await supabase
-    .from('dashboard')
-    .select('user_id, first_name, total_points')
-    .order('total_points', { ascending: false });
+  const [standingsRes, matchesRes, guessesRes] = await Promise.all([
+    supabase
+      .from('dashboard')
+      .select('user_id, first_name, total_points')
+      .order('total_points', { ascending: false }),
+    supabase
+      .from('matches')
+      .select('match_id, match_number')
+      .eq('finished', true)
+      .order('match_number', { ascending: true }),
+    // All users' calculated guesses: RLS only exposes others after kickoff.
+    supabaseAdminClient
+      .from('guesses')
+      .select('user_id, match_id, points')
+      .eq('points_calculated', true),
+  ]);
 
-  if (res.error) {
-    console.error('Error fetching data:', res.error.message);
-    return { standings, predictions };
+  if (standingsRes.error) {
+    console.error('Error fetching standings:', standingsRes.error.message);
+    error(500, standingsRes.error.message);
   }
-  standings = res.data as unknown as User[];
 
-  const sec_res = await supabase.from('guesses').select(
-    `
-    guess_id,
-    user:user_id (id, first_name),
-    match:match_id (
-      match_id,
-      date,
-      time,
-      home:home_id (team_id, country_code, name, group, win, draw, loss, gf, gaa),
-      away:away_id (team_id, country_code, name, group, win, draw, loss, gf, gaa),
-      home_goals,
-      away_goals,
-      finished
-    ),
-    home_goals,
-    away_goals,
-    points,
-    points_calculated
-  `,
-  );
-
-  if (sec_res.error) {
-    // console.error('Error fetching data @standings:', sec_res.error.message);
-    return { standings, predictions };
+  if (matchesRes.error) {
+    console.error('Error fetching finished matches:', matchesRes.error.message);
+    error(500, matchesRes.error.message);
   }
-  predictions = sortPredsByDateTime(sec_res.data as unknown as Prediction[]).filter(
-    (p) => p.points_calculated,
+
+  if (guessesRes.error) {
+    console.error('Error fetching guesses for chart:', guessesRes.error.message);
+    error(500, guessesRes.error.message);
+  }
+
+  const standings = standingsRes.data as unknown as User[];
+  const chartData = buildStandingsChartData(
+    standingsRes.data.map((row) => ({
+      user_id: row.user_id,
+      first_name: row.first_name,
+    })),
+    matchesRes.data,
+    guessesRes.data,
   );
+  const showCharts = shouldShowStandingsCharts(guessesRes.data, chartData);
 
-  const groupedPredictions = groupByUser(predictions);
-  const chartData = transformDataForChart(groupedPredictions);
-
-  // chartData.map((x) => console.log(x));
-
-  return { standings, chartData };
+  return { standings, chartData, showCharts };
 };
