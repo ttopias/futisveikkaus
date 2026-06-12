@@ -63,17 +63,51 @@ export function isStageAtOrBefore(
   return stageIndex(stage as MatchStage) <= stageIndex(visibleStage);
 }
 
-export function isMatchStarted(match: { starts_at?: string | null }): boolean {
-  if (match.starts_at == null) return false;
-  const kickoff = new Date(match.starts_at);
+/**
+ * Earliest kickoff (ISO) among matches of a stage, or null when none.
+ * The whole stage shares this single deadline for editing and revealing guesses.
+ */
+export async function fetchStageFirstKickoff(
+  supabase: SupabaseClient,
+  stage: MatchStage,
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('matches')
+    .select('starts_at')
+    .eq('stage', stage)
+    .not('starts_at', 'is', null)
+    .order('starts_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`fetchStageFirstKickoff: ${error.message}`);
+  }
+
+  return data?.starts_at ?? null;
+}
+
+/** True once the first match of the stage has kicked off (stage deadline passed). */
+export function hasStageStarted(stageFirstKickoff: string | null | undefined): boolean {
+  if (stageFirstKickoff == null) return false;
+  const kickoff = new Date(stageFirstKickoff);
   if (Number.isNaN(kickoff.getTime())) return false;
   return kickoff <= new Date();
 }
 
-/** Finished or in-progress matches in visible or past stages may show all users' guesses. */
+/** Predictions stay open for every match of a stage until its first match starts. */
+export function isStagePredictable(stageFirstKickoff: string | null | undefined): boolean {
+  if (stageFirstKickoff == null) return false;
+  const kickoff = new Date(stageFirstKickoff);
+  if (Number.isNaN(kickoff.getTime())) return false;
+  return kickoff > new Date();
+}
+
+/** Guesses are revealed for the whole stage once that stage's first match has started. */
 export function canViewMatchGuesses(
-  match: { stage?: string | null; starts_at?: string | null },
+  match: { stage?: string | null },
   visibleStage: MatchStage,
+  stageFirstKickoff: string | null | undefined,
 ): boolean {
-  return isStageAtOrBefore(match.stage, visibleStage) && isMatchStarted(match);
+  return isStageAtOrBefore(match.stage, visibleStage) && hasStageStarted(stageFirstKickoff);
 }

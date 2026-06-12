@@ -20,7 +20,7 @@
   export let form: ActionData;
   export let loading = false;
   export let predictableMatches: Match[] = [];
-  export let tournamentStartsAt: string | null = null;
+  export let stageFirstKickoff: string | null = null;
 
   let carouselApi: CarouselAPI | undefined;
   let slideIndex = 0;
@@ -173,9 +173,9 @@
   </Carousel.Root>
 </Card.Root>
 
-{#if tournamentStartsAt && new Date() < new Date(tournamentStartsAt)}
+{#if stageFirstKickoff && new Date() < new Date(stageFirstKickoff)}
   <p class="mt-4 text-center text-sm text-muted-foreground">
-    Alkusarjan otteluiden arvausaika päättyy
-    <Time timestamp={tournamentStartsAt} format="DD.MM.YYYY kello HH:mm" />.
+    Tämän vaiheen otteluiden arvausaika päättyy
+    <Time timestamp={stageFirstKickoff} format="DD.MM.YYYY kello HH:mm" />.
   </p>
 {/if}

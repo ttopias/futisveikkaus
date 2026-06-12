@@ -4,7 +4,7 @@
   import { page } from '$app/stores';
   import type { ActionData, PageData } from './$types';
   import Time from 'svelte-time';
-  import { isMatchPredictable } from '$lib/stages';
+  import { isStagePredictable } from '$lib/tournament-stage';
   import { matchParticipant } from '$lib/match-participants';
   import TeamFlag from '$lib/components/TeamFlag.svelte';
   import { Button } from '$lib/components/ui/button';
@@ -28,7 +28,8 @@
   let loading = false;
   let view = 'create';
 
-  $: slides = predictableMatches.filter((match) => isMatchPredictable(match));
+  $: stagePredictable = isStagePredictable(data?.stageFirstKickoff);
+  $: slides = stagePredictable ? predictableMatches : [];
 
   $: {
     if ($page.url.searchParams.has('create')) view = 'create';
@@ -60,7 +61,7 @@
           {form}
           bind:loading
           bind:predictableMatches
-          tournamentStartsAt={data.tournamentStartsAt}
+          stageFirstKickoff={data.stageFirstKickoff}
         />
       {/await}
     {/if}
@@ -159,7 +160,7 @@
                     variant="destructive"
                     class="w-full gap-2"
                     type="submit"
-                    disabled={!isMatchPredictable(prediction.match)}
+                    disabled={!stagePredictable}
                   >
                     <Trash2 class="size-4" />
                     Poista
@@ -179,12 +180,7 @@
                   }}
                 >
                   <input type="hidden" name="guess_id" value={prediction.guess_id} />
-                  <Button
-                    class="w-full gap-2"
-                    {loading}
-                    type="submit"
-                    disabled={!isMatchPredictable(prediction.match)}
-                  >
+                  <Button class="w-full gap-2" {loading} type="submit" disabled={!stagePredictable}>
                     <Save class="size-4" />
                     Tallenna
                   </Button>

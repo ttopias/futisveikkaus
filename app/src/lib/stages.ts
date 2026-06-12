@@ -35,14 +35,6 @@ export function visibleStageLabelFi(stage: MatchStage): string {
   return STAGE_LABELS_FI[stage];
 }
 
-/** Whether predictions are still open for a match (deadline = kickoff). */
-export function isMatchPredictable(match: { starts_at?: string | null }): boolean {
-  if (match.starts_at == null) return false;
-  const kickoff = new Date(match.starts_at);
-  if (Number.isNaN(kickoff.getTime())) return false;
-  return kickoff > new Date();
-}
-
 export function enrichMatchWithStageDisplay(match: Match): Match {
   const m = enrichMatchParticipants(match);
   const stage = isMatchStage(m.stage) ? m.stage : 'group';

@@ -1,6 +1,11 @@
 import { MATCH_PARTICIPANT_DISPLAY_SELECT } from '$lib/match-participants';
 import { enrichMatchWithStageDisplay } from '$lib/stages';
-import { canViewMatchGuesses, isStageAtOrBefore } from '$lib/tournament-stage';
+import {
+  canViewMatchGuesses,
+  fetchStageFirstKickoff,
+  isStageAtOrBefore,
+} from '$lib/tournament-stage';
+import type { MatchStage } from '$lib/stages';
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import type { Prediction, Match } from '$lib';
@@ -56,7 +61,8 @@ export const load: PageServerLoad = async ({
     error(404, 'This match is not available yet');
   }
 
-  const canViewGuesses = canViewMatchGuesses(match, visibleMatchStage);
+  const stageFirstKickoff = await fetchStageFirstKickoff(supabase, match.stage as MatchStage);
+  const canViewGuesses = canViewMatchGuesses(match, visibleMatchStage, stageFirstKickoff);
 
   const profileRes = await supabase
     .from('profiles')

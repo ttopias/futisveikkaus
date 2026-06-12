@@ -270,6 +270,15 @@ RETURNS boolean AS $$
     );
 $$ LANGUAGE sql STABLE;
 
+-- Earliest kickoff among matches of a stage. The whole stage shares this single
+-- deadline: predictions lock and guesses become visible once it has passed.
+CREATE OR REPLACE FUNCTION stage_first_kickoff(p_stage public.match_stage)
+RETURNS timestamptz AS $$
+    SELECT min(starts_at)
+    FROM matches
+    WHERE stage = p_stage;
+$$ LANGUAGE sql STABLE;
+
 -- Group rank (1 = winner, 2 = runner-up, 3 = third) using the same tiebreakers
 -- as best_third_among_groups: points, GD, GF (desc), then fifa_rank (asc, NULLS LAST).
 CREATE OR REPLACE FUNCTION group_qualifier_team_id(p_group text, p_rank int)
@@ -574,6 +583,9 @@ GRANT EXECUTE ON FUNCTION visible_match_stage() TO anon, authenticated;
 
 REVOKE ALL ON FUNCTION all_group_stage_complete() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION all_group_stage_complete() TO authenticated;
+
+REVOKE ALL ON FUNCTION stage_first_kickoff(public.match_stage) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION stage_first_kickoff(public.match_stage) TO authenticated;
 
 REVOKE ALL ON FUNCTION group_stage_complete(text) FROM PUBLIC;
 REVOKE ALL ON FUNCTION group_qualifier_team_id(text, int) FROM PUBLIC;

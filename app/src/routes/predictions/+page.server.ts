@@ -2,13 +2,14 @@ import { error, fail } from '@sveltejs/kit';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Actions, PageServerLoad } from './$types';
 import type { Match, Prediction } from '$lib/index';
-import { filterMatchesByVisibleStage, isMatchInVisibleStage } from '$lib/tournament-stage';
-import { MATCH_PARTICIPANT_DISPLAY_SELECT } from '$lib/match-participants';
 import {
-  enrichMatchesWithStageDisplay,
-  enrichPredictionsWithStageDisplay,
-  isMatchPredictable,
-} from '$lib/stages';
+  fetchStageFirstKickoff,
+  filterMatchesByVisibleStage,
+  isMatchInVisibleStage,
+  isStagePredictable,
+} from '$lib/tournament-stage';
+import { MATCH_PARTICIPANT_DISPLAY_SELECT } from '$lib/match-participants';
+import { enrichMatchesWithStageDisplay, enrichPredictionsWithStageDisplay } from '$lib/stages';
 import type { MatchStage } from '$lib/stages';
 import { sortByDateTime, sortPredsByDateTime } from '$lib/utils';
 
@@ -32,7 +33,7 @@ export const load: PageServerLoad = async ({
     error(401, 'Unauthorized');
   }
 
-  const [res, sec_res, tournamentRes] = await Promise.all([
+  const [res, sec_res] = await Promise.all([
     supabase
       .from('guesses')
       .select(
@@ -70,13 +71,6 @@ export const load: PageServerLoad = async ({
       )
       .eq('stage', visibleMatchStage)
       .order('starts_at', { ascending: true }),
-    supabase
-      .from('matches')
-      .select('starts_at')
-      .not('starts_at', 'is', null)
-      .order('starts_at', { ascending: true })
-      .limit(1)
-      .maybeSingle(),
   ]);
 
   if (res.error) {
@@ -86,6 +80,13 @@ export const load: PageServerLoad = async ({
     error(500, sec_res.error.message);
   }
 
+  const visibleStageMatches = (sec_res.data ?? []) as unknown as Match[];
+
+  // Whole stage shares one deadline: the kickoff of its earliest match.
+  // `visibleStageMatches` is ordered by `starts_at` ascending, so the first entry is it.
+  const stageFirstKickoff = visibleStageMatches[0]?.starts_at ?? null;
+  const stagePredictable = isStagePredictable(stageFirstKickoff);
+
   const rawPredictions = (res.data ?? []) as unknown as Prediction[];
   predictions = rawPredictions.filter(
     (p) => p.match && !p.match.finished && isMatchInVisibleStage(p.match, visibleMatchStage),
@@ -93,16 +94,14 @@ export const load: PageServerLoad = async ({
 
   const predictionsMade = new Set(predictions.map((p: Prediction) => p.match.match_id));
 
-  predictableMatches = (sec_res.data as unknown as Match[]).filter(
-    (m) => !predictionsMade.has(m.match_id),
-  );
+  predictableMatches = visibleStageMatches.filter((m) => !predictionsMade.has(m.match_id));
   predictableMatches = filterMatchesByVisibleStage(predictableMatches, visibleMatchStage);
-  predictableMatches = predictableMatches
-    .filter((m: Match) => isMatchPredictable(m))
-    .map((m: Match, i: number) => {
-      m.index = i;
-      return m;
-    });
+  predictableMatches = stagePredictable
+    ? predictableMatches.map((m: Match, i: number) => {
+        m.index = i;
+        return m;
+      })
+    : [];
 
   predictableMatches = sortByDateTime(enrichMatchesWithStageDisplay(predictableMatches));
   predictions = sortPredsByDateTime(enrichPredictionsWithStageDisplay(predictions));
@@ -112,7 +111,7 @@ export const load: PageServerLoad = async ({
     predictions,
     predictableMatches,
     visibleMatchStage,
-    tournamentStartsAt: tournamentRes.data?.starts_at ?? null,
+    stageFirstKickoff,
   };
 };
 
@@ -139,8 +138,9 @@ async function assertMatchPredictable(
     return fail(403, { message: 'This match is not open for predictions yet' });
   }
 
-  if (!isMatchPredictable(match)) {
-    return fail(403, { message: 'Predictions are closed for this match' });
+  const stageFirstKickoff = await fetchStageFirstKickoff(supabase, match.stage as MatchStage);
+  if (!isStagePredictable(stageFirstKickoff)) {
+    return fail(403, { message: 'Predictions are closed for this stage' });
   }
 
   return null;
@@ -176,8 +176,9 @@ async function assertGuessPredictable(
   if (!isMatchInVisibleStage(match, visibleMatchStage)) {
     return fail(403, { message: 'This match is not open for predictions yet' });
   }
-  if (!isMatchPredictable(match)) {
-    return fail(403, { message: 'Predictions are closed for this match' });
+  const stageFirstKickoff = await fetchStageFirstKickoff(supabase, match.stage as MatchStage);
+  if (!isStagePredictable(stageFirstKickoff)) {
+    return fail(403, { message: 'Predictions are closed for this stage' });
   }
 
   return null;
