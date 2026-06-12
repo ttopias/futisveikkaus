@@ -11,11 +11,16 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
 import { loadEnvFiles } from './lib/db-env.mjs';
-import { FIXTURE_CSV_URL, loadFixtures, parseScore } from './lib/fixtures.mjs';
+import { FIXTURE_CSV_URL, loadFixtures } from './lib/fixtures.mjs';
+import {
+  applyMatchUpdates,
+  computeMatchUpdates,
+  formatUpdatePreview,
+  resultsFromFixtures,
+} from './lib/update-match-results-core.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = path.resolve(__dirname, '..');
-const APP_DIR = path.join(REPO_ROOT, 'app');
+const APP_DIR = path.join(path.resolve(__dirname, '..'), 'app');
 const require = createRequire(path.join(APP_DIR, 'package.json'));
 const { createClient } = require('@supabase/supabase-js');
 
@@ -52,24 +57,6 @@ Updates only home_goals, away_goals, finished on existing matches (by match_numb
   return args;
 }
 
-function resultsFromFixtures(fixtureRows) {
-  const byNumber = new Map();
-  for (const row of fixtureRows) {
-    const [home_goals, away_goals, finished] = parseScore(row.result);
-    if (!finished) continue;
-    byNumber.set(row.matchNumber, { home_goals, away_goals, finished });
-  }
-  return byNumber;
-}
-
-function needsUpdate(dbRow, source) {
-  return (
-    dbRow.home_goals !== source.home_goals ||
-    dbRow.away_goals !== source.away_goals ||
-    dbRow.finished !== source.finished
-  );
-}
-
 async function main() {
   const args = parseArgs(process.argv);
   await loadEnvFiles(args.env);
@@ -103,31 +90,7 @@ async function main() {
     .order('match_number');
   if (error) throw error;
 
-  const updates = [];
-  let unchanged = 0;
-  let noSource = 0;
-
-  for (const row of matches ?? []) {
-    const source = sourceResults.get(row.match_number);
-    if (!source) {
-      noSource += 1;
-      continue;
-    }
-    if (!needsUpdate(row, source)) {
-      unchanged += 1;
-      continue;
-    }
-    updates.push({
-      match_id: row.match_id,
-      match_number: row.match_number,
-      before: {
-        home_goals: row.home_goals,
-        away_goals: row.away_goals,
-        finished: row.finished,
-      },
-      after: source,
-    });
-  }
+  const { updates, unchanged, noSource } = computeMatchUpdates(matches ?? [], sourceResults);
 
   if (!updates.length) {
     console.log(
@@ -136,12 +99,7 @@ async function main() {
     return;
   }
 
-  const preview = updates
-    .slice(0, 12)
-    .map(
-      (u) =>
-        `#${u.match_number}: ${u.before.home_goals ?? '?'}-${u.before.away_goals ?? '?'} (${u.before.finished ? 'done' : 'open'}) -> ${u.after.home_goals}-${u.after.away_goals} (finished)`,
-    );
+  const preview = formatUpdatePreview(updates);
   console.log(`Would update ${updates.length} match(es). Sample:\n  ${preview.join('\n  ')}`);
 
   if (args.dryRun) {
@@ -149,18 +107,7 @@ async function main() {
     return;
   }
 
-  for (const u of updates) {
-    const { error: updErr } = await client
-      .from('matches')
-      .update({
-        home_goals: u.after.home_goals,
-        away_goals: u.after.away_goals,
-        finished: u.after.finished,
-      })
-      .eq('match_id', u.match_id);
-    if (updErr) throw updErr;
-  }
-
+  await applyMatchUpdates(client, updates, { dryRun: false });
   console.log(`Updated ${updates.length} match(es).`);
 }
 

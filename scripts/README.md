@@ -117,22 +117,114 @@ node scripts/update-match-results.mjs --write --env app/.env.local
 
 `make update-results` runs the write mode with `app/.env.local`.
 
-### Vercel cron (example)
+### HTTP trigger (`/api/cron/update-match-results`)
 
-Add a serverless route that runs the script (or inlines the same Supabase updates) on a schedule, e.g. every hour after kickoff windows:
+The app exposes `GET` or `POST /api/cron/update-match-results` (same CSV + Supabase logic as this script; skips updates until 180 minutes after `starts_at`). Requires header:
 
-```json
-{
-  "crons": [
-    {
-      "path": "/api/cron/update-match-results",
-      "schedule": "0 */2 * * *"
-    }
-  ]
-}
+```http
+Authorization: Bearer <CRON_SECRET>
 ```
 
-Protect the route with `CRON_SECRET` (compare `Authorization: Bearer …` in the handler). The handler can `exec` `node ../scripts/update-match-results.mjs --write` or call Supabase with the service role the same way the script does.
+Set `CRON_SECRET` in Vercel project env (and `app/.env.local` for local testing). Use a long random string.
+
+Local test (dev server running, `CRON_SECRET` in `.env.local`):
+
+```bash
+curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:5173/api/cron/update-match-results
+```
+
+#### Vercel Cron (Pro plan)
+
+On **Vercel Pro**, `app/vercel.json` schedules the route once daily at 08:00 GMT+3 (05:00 UTC, `0 5 * * *`). Vercel sends `Authorization: Bearer <CRON_SECRET>` when `CRON_SECRET` is set. Deploy from the `app/` root (SvelteKit + `adapter-vercel`).
+
+#### Raspberry Pi trigger
+
+Supabase and Vercel requires paid plans to use cron jobs. Instead, one can use a Raspberry Pi (or any always-on host) to `curl` the endpoint on a schedule.
+
+**Prerequisites**
+
+1. App deployed to Vercel with root directory **`app/`**.
+2. `CRON_SECRET` set in Vercel env (must match the Pi).
+3. `SUPABASE_SECRET_KEY` and other app env vars already on Vercel.
+4. Production URL, e.g. `https://your-app.vercel.app/api/cron/update-match-results`.
+
+**1. Copy the example script**
+
+```bash
+mkdir -p ~/bin
+cp /path/to/futisveikkaus/scripts/raspberry-pi/update-match-results.sh ~/bin/
+chmod 700 ~/bin/update-match-results.sh
+```
+
+**2. Store secrets**
+
+```bash
+mkdir -p ~/.config/futisveikkaus
+cat > ~/.config/futisveikkaus/env <<'EOF'
+CRON_SECRET=your-long-random-secret
+UPDATE_RESULTS_URL=https://your-app.vercel.app/api/cron/update-match-results
+EOF
+chmod 600 ~/.config/futisveikkaus/env
+```
+
+**3. Wrapper for cron** (loads env, logs output)
+
+```bash
+cat > ~/bin/futisveikkaus-update-wrapper.sh <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+source ~/.config/futisveikkaus/env
+export CRON_SECRET UPDATE_RESULTS_URL
+exec ~/bin/update-match-results.sh
+EOF
+chmod 700 ~/bin/futisveikkaus-update-wrapper.sh
+```
+
+**4. Crontab** (every 15 minutes; script skips 07:00–19:00 Europe/Helsinki)
+
+```bash
+crontab -e
+```
+
+Add:
+
+```cron
+*/15 * * * * /home/pi/bin/futisveikkaus-update-wrapper.sh >> /var/log/futisveikkaus-update.log 2>&1
+```
+
+Adjust `/home/pi/` if your user differs.
+
+**5. Manual test**
+
+```bash
+source ~/.config/futisveikkaus/env
+curl -v -H "Authorization: Bearer $CRON_SECRET" "$UPDATE_RESULTS_URL"
+```
+
+Expected **200** JSON, e.g. no changes:
+
+```json
+{"updated":0,"unchanged":2,"noSource":102,"skippedEarly":0,"preview":[],"message":"No changes needed"}
+```
+
+After a new CSV result (and 180 min past kickoff): `"updated":1` (or more).
+
+**Security**
+
+- Use **HTTPS** only.
+- Never commit `CRON_SECRET` to git.
+- `chmod 600` on env file; `chmod 700` on scripts.
+- The endpoint is not linked in the UI; the secret is the main protection.
+
+**Troubleshooting**
+
+| Symptom | Likely cause |
+|---------|----------------|
+| `401 Unauthorized` | `CRON_SECRET` mismatch between Pi and Vercel |
+| `500` + error message | Missing Supabase env on Vercel, or CSV fetch failed |
+| Empty log / exit 0 midday | Script correctly skips 07:00–19:00 Helsinki |
+| `curl: (22)` / HTTP 4xx | Wrong URL or auth header |
+| No updates though match ended | CSV not updated yet, or within 180 min of `starts_at` |
 
 ---
 

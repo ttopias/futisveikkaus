@@ -1,6 +1,10 @@
 import type { Session, SupabaseClient, User } from '@supabase/supabase-js';
 import type { MatchStage } from '$lib/stages';
 
+declare module '$env/static/private' {
+	export const CRON_SECRET: string;
+}
+
 declare global {
   namespace App {
     interface Locals {
