@@ -17,6 +17,8 @@ export type Match = {
   away?: Team | null;
   home_slot?: string | null;
   away_slot?: string | null;
+  home_favourite?: { country_code: string; name: string } | null;
+  away_favourite?: { country_code: string; name: string } | null;
   home_goals: number;
   away_goals: number;
   finished: boolean;
@@ -60,6 +62,8 @@ export type User = {
   user_id?: string;
   id?: string;
   total_points?: number;
+  correct_pct?: number;
+  avg_points?: number;
   first_name: string;
 };
 

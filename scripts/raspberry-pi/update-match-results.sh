@@ -19,10 +19,11 @@ fi
 : "${UPDATE_RESULTS_URL:?UPDATE_RESULTS_URL is required}"
 
 export TZ=Europe/Helsinki
-hour=$(date +%H)
+# Force base-10: date +%H returns "09" etc., which bash treats as invalid octal in [[ -lt ]].
+hour=$((10#$(date +%H)))
 
 # Active window: 19:00–07:00 local (19:00 inclusive, 07:00 exclusive)
-if [[ "$hour" -ge 19 || "$hour" -lt 7 ]]; then
+if (( hour >= 19 || hour < 7 )); then
 	curl -sf \
 		-H "Authorization: Bearer ${CRON_SECRET}" \
 		"${UPDATE_RESULTS_URL}"

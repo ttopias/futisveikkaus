@@ -44,6 +44,25 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
   }
 
   const standings = standingsRes.data as unknown as User[];
+  const finishedCount = matchesRes.data.length;
+  const correctByUser = new Map<string, number>();
+  const guessCountByUser = new Map<string, number>();
+  for (const g of guessesRes.data) {
+    guessCountByUser.set(g.user_id, (guessCountByUser.get(g.user_id) ?? 0) + 1);
+    if (g.points >= 3) {
+      correctByUser.set(g.user_id, (correctByUser.get(g.user_id) ?? 0) + 1);
+    }
+  }
+  for (const row of standings) {
+    if (row.user_id) {
+      const guessCount = guessCountByUser.get(row.user_id) ?? 0;
+      row.avg_points = guessCount ? (row.total_points ?? 0) / guessCount : 0;
+      row.correct_pct = finishedCount
+        ? ((correctByUser.get(row.user_id) ?? 0) / finishedCount) * 100
+        : 0;
+    }
+  }
+
   const chartData = buildStandingsChartData(
     standingsRes.data.map((row) => ({
       user_id: row.user_id,

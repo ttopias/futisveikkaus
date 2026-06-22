@@ -5,6 +5,7 @@
   import RankBumpChart from './RankBumpChart.svelte';
 
   export let chartData: StandingsChartData;
+  export let playerCount: number | undefined = undefined;
 
   let activeTab = 'points';
 </script>
@@ -21,7 +22,7 @@
   </Tabs.Content>
   <Tabs.Content value="rank">
     {#if activeTab === 'rank'}
-      <RankBumpChart {chartData} />
+      <RankBumpChart {chartData} {playerCount} />
     {/if}
   </Tabs.Content>
 </Tabs.Root>

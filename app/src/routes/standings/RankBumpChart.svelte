@@ -6,10 +6,12 @@
   import { registerStandingsCharts, STANDINGS_CHART_LEGEND } from './chart-setup';
 
   export let chartData: StandingsChartData;
+  /** Override y-axis max for rank chart (e.g. single-user view vs full field). */
+  export let playerCount: number | undefined = undefined;
 
   registerStandingsCharts();
 
-  $: playerCount = chartData.series.length;
+  $: rankAxisMax = playerCount ?? chartData.series.length;
   $: labels = chartData.timeline.map((m) => `#${m.matchNumber}`);
   $: datasets = chartData.series.map((s) => ({
     label: s.chartLabel,
@@ -57,7 +59,7 @@
       y: {
         reverse: true,
         min: 1,
-        max: Math.max(playerCount, 2),
+        max: Math.max(rankAxisMax, 2),
         offset: true,
         title: { display: true, text: 'Sija', color: 'hsl(160 12% 38%)' },
         ticks: {

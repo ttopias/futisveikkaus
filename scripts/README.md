@@ -220,7 +220,8 @@ After a new CSV result (and 180 min past kickoff): `"updated":1` (or more).
 
 | Symptom | Likely cause |
 |---------|----------------|
-| `401 Unauthorized` | `CRON_SECRET` mismatch between Pi and Vercel |
+| `401 Unauthorized` | `CRON_SECRET` mismatch between Pi and Vercel; trailing newline/quotes in `cron.env`; secret only on Preview not Production; redeploy after adding `CRON_SECRET` on Vercel |
+| `09: value too great for base` | Old script compared `date +%H` with `[[ -lt ]]` — update to latest `scripts/raspberry-pi/update-match-results.sh` (uses `hour=$((10#$(date +%H)))`) |
 | `500` + error message | Missing Supabase env on Vercel, or CSV fetch failed |
 | Empty log / exit 0 midday | Script correctly skips 07:00–19:00 Helsinki |
 | `curl: (22)` / HTTP 4xx | Wrong URL or auth header |

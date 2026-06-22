@@ -4,7 +4,6 @@
   import type { PageData } from './$types';
   import type { Match } from '$lib/index';
   import { matchParticipant } from '$lib/match-participants';
-  import { visibleStageLabelFi } from '$lib/stages';
   import { cn } from '$lib/utils';
   import TeamFlag from '$lib/components/TeamFlag.svelte';
   import { Badge } from '$lib/components/ui/badge';
@@ -12,12 +11,17 @@
   import * as Card from '$lib/components/ui/card';
   import * as Table from '$lib/components/ui/table';
   import { formatMatchTime } from '$lib/utils/format-match-time';
+  import { Switch } from '$lib/components/ui/switch';
   import ChevronRight from 'lucide-svelte/icons/chevron-right';
 
   export let data: PageData;
 
+  let showUnplayed = true;
+
   $: matches = data?.matches ?? [];
-  $: stageLabel = data.visibleMatchStage ? visibleStageLabelFi(data.visibleMatchStage) : '';
+  $: visibleMatches = showUnplayed
+    ? matches.filter((m) => !m.finished)
+    : matches.filter((m) => m.finished);
   $: canOpenMatch = Boolean($page.data.user);
 
   function matchHref(matchId: number): string {
@@ -58,11 +62,17 @@
     <Card.Root class="shadow-md">
       <Card.Header class="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
         <Card.Title>Otteluohjelma</Card.Title>
-        {#if stageLabel}
-          <Badge variant="secondary">{stageLabel}</Badge>
-        {/if}
       </Card.Header>
       <Card.Content class="min-w-0 space-y-3 pt-0">
+        <div class="flex justify-end">
+          <Switch bind:checked={showUnplayed}>
+            <span class="text-sm">Näytä pelaamattomat</span>
+          </Switch>
+        </div>
+
+        {#if visibleMatches.length === 0}
+          <p class="py-8 text-center text-muted-foreground">Ei otteluita näytettäväksi.</p>
+        {:else}
         {#if !canOpenMatch}
           <p class="text-sm text-muted-foreground">
             Kirjaudu sisään nähdäksesi ottelukohtaiset arvaukset.
@@ -70,7 +80,7 @@
         {/if}
 
         <ul class="flex flex-col gap-3 md:hidden">
-          {#each matches as match (match.match_id)}
+          {#each visibleMatches as match (match.match_id)}
             {@const home = matchParticipant(match, 'home')}
             {@const away = matchParticipant(match, 'away')}
             <li>
@@ -146,7 +156,7 @@
               </Table.Row>
             </Table.Header>
             <Table.Body>
-              {#each matches as match (match.match_id)}
+              {#each visibleMatches as match (match.match_id)}
                 {@const home = matchParticipant(match, 'home')}
                 {@const away = matchParticipant(match, 'away')}
                 <Table.Row class="cursor-pointer" on:click={() => openMatch(match)}>
@@ -204,6 +214,7 @@
             </Table.Body>
           </Table.Root>
         </div>
+        {/if}
       </Card.Content>
     </Card.Root>
   {/if}

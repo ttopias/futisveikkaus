@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { goto } from '$app/navigation';
   import type { PageData } from './$types';
   import type { User } from '$lib';
   import * as Card from '$lib/components/ui/card';
@@ -21,7 +22,13 @@
   function cellValue(row: User, key: string): string | number {
     if (key === 'first_name') return row.first_name;
     if (key === 'total_points') return row.total_points ?? 0;
+    if (key === 'correct_pct') return row.correct_pct ?? 0;
+    if (key === 'avg_points') return row.avg_points ?? 0;
     return '';
+  }
+
+  function openUser(row: User) {
+    if (row.user_id) goto(`/standings/${row.user_id}`);
   }
 
   $: standings = data?.standings ?? [];
@@ -32,6 +39,11 @@
 
 <div class="mx-auto flex w-full max-w-4xl flex-col gap-4">
   <Card.Root class="max-w-4xl overflow-hidden shadow-sm">
+    <Card.Content class="pt-6">
+      <p class="mb-4 text-sm text-muted-foreground">
+        Oikein% = oikein veikatut lopputulokset (vähintään 3 pistettä) / pelatut ottelut
+      </p>
+    </Card.Content>
     <ScrollArea.Root orientation="horizontal">
       <Table.Root>
         <Table.Header>
@@ -51,16 +63,53 @@
                 {/if}
               </Button>
             </Table.Head>
+            <Table.Head class="whitespace-nowrap">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                class="h-auto gap-1 px-0 font-medium hover:bg-transparent"
+                on:click={() => handleSort('avg_points')}
+              >
+                KESKIARVO
+                {#if sortKey === 'avg_points'}
+                  <span class="text-xs" aria-hidden="true">{sortDir === 'asc' ? '↑' : '↓'}</span>
+                {/if}
+              </Button>
+            </Table.Head>
+            <Table.Head class="whitespace-nowrap">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                class="h-auto gap-1 px-0 font-medium hover:bg-transparent"
+                on:click={() => handleSort('correct_pct')}
+              >
+                OIKEIN%
+                {#if sortKey === 'correct_pct'}
+                  <span class="text-xs" aria-hidden="true">{sortDir === 'asc' ? '↑' : '↓'}</span>
+                {/if}
+              </Button>
+            </Table.Head>
           </Table.Row>
         </Table.Header>
         <Table.Body>
           {#each sortedStandings as row (row.user_id ?? row.id ?? row.first_name)}
-            <Table.Row>
+            <Table.Row
+              class={row.user_id ? 'cursor-pointer' : undefined}
+              on:click={() => openUser(row)}
+            >
               <Table.Cell class="min-w-0 align-middle">
                 <span class="break-words">{row.first_name}</span>
               </Table.Cell>
               <Table.Cell class="min-w-0 align-middle">
                 <span class="break-words tabular-nums">{row.total_points ?? 0}</span>
+              </Table.Cell>
+              <Table.Cell class="min-w-0 align-middle">
+                <span class="break-words tabular-nums">{(row.avg_points ?? 0).toFixed(2)}</span>
+              </Table.Cell>
+              <Table.Cell class="min-w-0 align-middle">
+                <span class="break-words tabular-nums">{(row.correct_pct ?? 0).toFixed(0)} %</span>
               </Table.Cell>
             </Table.Row>
           {/each}

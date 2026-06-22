@@ -11,6 +11,7 @@
   import Target from 'lucide-svelte/icons/target';
   import Trophy from 'lucide-svelte/icons/trophy';
   import BarChart3 from 'lucide-svelte/icons/bar-chart-3';
+  import GitFork from 'lucide-svelte/icons/git-fork';
   import Shield from 'lucide-svelte/icons/shield';
   import LogIn from 'lucide-svelte/icons/log-in';
   import LogOut from 'lucide-svelte/icons/log-out';
@@ -53,6 +54,12 @@
       icon: BarChart3,
       match: (p) => p === '/fifa-ranking',
     },
+    {
+      href: '/bracket',
+      label: 'Pudotuspelikaavio',
+      icon: GitFork,
+      match: (p) => p === '/bracket',
+    },
   ];
 
   const userLinks: NavItem[] = [
@@ -66,7 +73,7 @@
       href: '/standings',
       label: 'Pistetilanne',
       icon: Trophy,
-      match: (p) => p === '/standings',
+      match: (p) => p === '/standings' || p.startsWith('/standings/'),
     },
   ];
 

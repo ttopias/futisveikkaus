@@ -5,15 +5,7 @@ import { MATCH_PARTICIPANT_DISPLAY_SELECT } from '$lib/match-participants';
 import { enrichMatchesWithStageDisplay } from '$lib/stages';
 import { sortByDateTime } from '$lib/utils';
 
-export const load: PageServerLoad = async ({ locals: { supabase, getVisibleMatchStage } }) => {
-  let visibleMatchStage;
-
-  try {
-    visibleMatchStage = await getVisibleMatchStage();
-  } catch (e) {
-    error(500, e instanceof Error ? e.message : 'Failed to load tournament stage');
-  }
-
+export const load: PageServerLoad = async ({ locals: { supabase } }) => {
   const res = await supabase
     .from('matches')
     .select(
@@ -27,7 +19,6 @@ export const load: PageServerLoad = async ({ locals: { supabase, getVisibleMatch
     finished
   `,
     )
-    .eq('stage', visibleMatchStage)
     .order('starts_at', { ascending: true });
 
   if (res.error) {
@@ -38,5 +29,5 @@ export const load: PageServerLoad = async ({ locals: { supabase, getVisibleMatch
     ? sortByDateTime(enrichMatchesWithStageDisplay(res.data as unknown as Match[]))
     : [];
 
-  return { matches, visibleMatchStage };
+  return { matches };
 };
