@@ -70,6 +70,9 @@ export function parseFixtureCsv(text, sourceTz) {
   const matchNumberCol = col('match number');
   const groupCol = col('group');
   const roundCol = col('round');
+  const homeCol = col('home');
+  const awayCol = col('away');
+  const resultCol = col('result');
 
   const rows = [];
   for (const line of lines.slice(1)) {
@@ -92,10 +95,20 @@ export function parseFixtureCsv(text, sourceTz) {
       matchNumber,
       stage,
       sourceTz,
-      result: col('result') >= 0 ? c[col('result')] : '',
+      homeRaw: homeCol >= 0 ? c[homeCol] : '',
+      awayRaw: awayCol >= 0 ? c[awayCol] : '',
+      result: resultCol >= 0 ? c[resultCol] : '',
     });
   }
   return rows;
+}
+
+export async function fetchFixtureCsvText(url = FIXTURE_CSV_URL) {
+  const text = await fetchText(url);
+  if (text.trimStart().startsWith('<!DOCTYPE') || text.trimStart().startsWith('<html')) {
+    throw new Error('Fixture URL returned HTML. Use a direct UTC CSV URL.');
+  }
+  return text;
 }
 
 export async function loadFixtures({ fixturesFile, fixturesUrl, fixturesTz } = {}) {
@@ -112,17 +125,38 @@ export async function loadFixtures({ fixturesFile, fixturesUrl, fixturesTz } = {
   } else {
     const url = fixturesUrl || FIXTURE_CSV_URL;
     console.log(`Fetching fixtures: ${url}`);
-    text = await fetchText(url);
+    text = await fetchFixtureCsvText(url);
     if (!sourceTz) sourceTz = 'UTC';
   }
 
-  if (text.trimStart().startsWith('<!DOCTYPE') || text.trimStart().startsWith('<html')) {
-    throw new Error('Fixture URL returned HTML. Use --fixtures-file or the direct UTC CSV URL.');
+  if (
+    fixturesFile &&
+    (text.trimStart().startsWith('<!DOCTYPE') || text.trimStart().startsWith('<html'))
+  ) {
+    throw new Error('Fixture file looks like HTML. Use a CSV export.');
   }
+
   return parseFixtureCsv(text, sourceTz);
 }
 
 export function formatStageCounts(counts) {
   const stages = [...new Set([...STAGE_ORDER, ...Object.keys(counts)])];
   return stages.map((stage) => `${stage}: ${counts[stage] ?? 0}`).join(', ');
+}
+
+/**
+ * @param {{ fixtureRows?: ReturnType<typeof parseFixtureCsv>, fixtureCsvText?: string, fixturesFile?: string | null, fixturesUrl?: string | null, fixturesTz?: string | null }} options
+ */
+export async function resolveFixtureRows({
+  fixtureRows,
+  fixtureCsvText,
+  fixturesFile,
+  fixturesUrl,
+  fixturesTz,
+} = {}) {
+  if (fixtureRows?.length) return fixtureRows;
+  if (fixtureCsvText != null) {
+    return parseFixtureCsv(fixtureCsvText, fixturesTz ?? 'UTC');
+  }
+  return loadFixtures({ fixturesFile, fixturesUrl, fixturesTz });
 }

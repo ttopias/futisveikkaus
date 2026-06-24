@@ -161,6 +161,15 @@ export function createPgClient() {
   return new Client({ connectionString: getDatabaseUrl() });
 }
 
+/** @returns {import('@supabase/supabase-js').SupabaseClient | null} */
+export function createSupabaseAdminClient() {
+  const url = String(process.env.PUBLIC_SUPABASE_URL ?? "").trim();
+  const key = String(process.env.SUPABASE_SECRET_KEY ?? "").trim();
+  if (!url || !key || url.includes("dummy")) return null;
+  const { createClient } = requireFromApp("@supabase/supabase-js");
+  return createClient(url, key);
+}
+
 export async function connectPgClient(client) {
   const databaseUrl = getDatabaseUrl();
   try {

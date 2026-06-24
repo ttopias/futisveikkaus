@@ -165,6 +165,40 @@ async function fetchText(url, timeoutMs = 45000) {
   return res.text();
 }
 
+/**
+ * @param {{ country_code?: string, name: string }[]} teams
+ * @param {Record<string, string>} [isoMap]
+ * @returns {Record<string, string>}
+ */
+export function buildEnglishToFinnishFromTeams(teams, isoMap = ISO_CODE_MAP) {
+  const isoToFi = new Map();
+  for (const team of teams) {
+    const cc = String(team.country_code ?? '').trim().toLowerCase();
+    if (cc) isoToFi.set(cc, team.name);
+  }
+  const map = { ...FINNISH_NAME_OVERRIDES };
+  for (const [en, iso] of Object.entries(isoMap)) {
+    const code = String(iso).toLowerCase();
+    const fi = isoToFi.get(code) ?? isoToFi.get(code.split('-').pop() ?? '');
+    if (fi) map[en] = fi;
+  }
+  return map;
+}
+
+/**
+ * @param {{ country_code?: string, name: string }[]} teams
+ * @returns {Promise<Record<string, string>>}
+ */
+export async function resolveEnglishToFinnish(teams) {
+  try {
+    return await fetchEnglishToFinnish();
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.warn(`Country name fetch failed (${message}); using teams + ISO map fallback.`);
+    return buildEnglishToFinnishFromTeams(teams);
+  }
+}
+
 export async function fetchEnglishToFinnish() {
   console.log(`Fetching country names: ${COUNTRY_NAMES_FI_URL}`);
   const $ = cheerio.load(await fetchText(COUNTRY_NAMES_FI_URL));
@@ -189,16 +223,19 @@ export function toFinnish(english, enToFi) {
   return enToFi[english] ?? null;
 }
 
-export function canonicalize(enToFi) {
+export function canonicalize(enToFi, warned = new Set()) {
   return (raw) => {
     const cleaned = cleanName(raw);
     if (!cleaned) return cleaned;
     const english = NAME_TO_ENGLISH[cleaned] ?? cleaned;
     const fi = toFinnish(english, enToFi);
     if (!fi) {
-      console.warn(
-        `Warning: no Finnish name for "${english}" (from "${cleaned}"). Add FINNISH_NAME_OVERRIDES or NAME_TO_ENGLISH.`,
-      );
+      if (!warned.has(english)) {
+        warned.add(english);
+        console.warn(
+          `Warning: no Finnish name for "${english}" (from "${cleaned}"). Add FINNISH_NAME_OVERRIDES or NAME_TO_ENGLISH.`,
+        );
+      }
       return null;
     }
     return fi;

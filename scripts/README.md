@@ -106,20 +106,33 @@ node scripts/scrape-fifa-rankings.mjs --write --env app/.env.local
 
 ---
 
-## Match results (`update-match-results.mjs`)
+## Tournament sync (`sync-tournament.mjs`)
 
-Updates **only** `home_goals`, `away_goals`, and `finished` on existing `matches` rows, keyed by `match_number`. Uses the same [Fixture Download UTC CSV](https://fixturedownload.com/download/fifa-world-cup-2026-UTC.csv) as `scrape-wikipedia.mjs`. Does not change teams, slots, kickoff times, or participants.
+Single entry point for keeping the live tournament in sync with the [Fixture Download UTC CSV](https://fixturedownload.com/download/fifa-world-cup-2026-UTC.csv). Runs **two steps in order** (same as the cron HTTP route):
+
+1. **Knockout participants** — `home_id` / `away_id` on non-group matches when CSV Home/Away cells have resolved country names.
+2. **Group match results** — `home_goals`, `away_goals`, `finished` on group-stage rows only (knockout scores via admin).
+
+Shared orchestration lives in `scripts/lib/tournament-sync.mjs` (`runTournamentSync`). Step logic is in `scripts/lib/knockout-participants.mjs` (`runKnockoutParticipantSync`) and `scripts/lib/update-match-results-core.mjs` (`runMatchResultsSync`). The SvelteKit cron route and CLI scripts call those modules — no subprocess spawning.
+
+### CLI
 
 ```bash
-node scripts/update-match-results.mjs --dry-run --env app/.env.local
-node scripts/update-match-results.mjs --write --env app/.env.local
+node scripts/sync-tournament.mjs --dry-run --env app/.env.local
+node scripts/sync-tournament.mjs --write --env app/.env.local
 ```
 
-`make update-results` runs the write mode with `app/.env.local`.
+`make sync-tournament` runs write mode with `app/.env.local`.
 
-### HTTP trigger (`/api/cron/update-match-results`)
+Options (`--env`, `--fixtures-file`, `--fixtures-url`, `--fixtures-tz`, `--dry-run` / `--write`) apply to the full sync. Individual CLIs use the same flags.
 
-The app exposes `GET` or `POST /api/cron/update-match-results` (same CSV + Supabase logic as this script; skips updates until 180 minutes after `starts_at`). Requires header:
+Individual scripts remain available: `sync-knockout-participants.mjs`, `update-match-results.mjs`.
+
+### HTTP cron (`/api/cron/update-match-results`)
+
+The app exposes **one** endpoint — `GET` or `POST /api/cron/update-match-results` — that fetches the fixture CSV once and runs both steps above. Use this for Vercel Cron (Pro), a Raspberry Pi `curl`, or any external scheduler.
+
+Requires header:
 
 ```http
 Authorization: Bearer <CRON_SECRET>
@@ -137,9 +150,9 @@ curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:5173/api/cron/upda
 
 On **Vercel Pro**, `app/vercel.json` schedules the route once daily at 08:00 GMT+3 (05:00 UTC, `0 5 * * *`). Vercel sends `Authorization: Bearer <CRON_SECRET>` when `CRON_SECRET` is set. Deploy from the `app/` root (SvelteKit + `adapter-vercel`).
 
-#### Raspberry Pi trigger
+#### Raspberry Pi trigger (Hobby Vercel / no Vercel Cron)
 
-Supabase and Vercel requires paid plans to use cron jobs. Instead, one can use a Raspberry Pi (or any always-on host) to `curl` the endpoint on a schedule.
+Supabase and Vercel require paid plans for built-in cron. Use a Raspberry Pi (or any always-on host) to `curl` **one URL** — the same endpoint above runs both participant sync and group results.
 
 **Prerequisites**
 
@@ -204,10 +217,10 @@ curl -v -H "Authorization: Bearer $CRON_SECRET" "$UPDATE_RESULTS_URL"
 Expected **200** JSON, e.g. no changes:
 
 ```json
-{"updated":0,"unchanged":2,"noSource":102,"skippedEarly":0,"preview":[],"message":"No changes needed"}
+{"participants":{"updated":0,"unchanged":32,"unknownNames":[],"preview":[]},"results":{"updated":0,"unchanged":2,"noSource":40,"skippedKnockout":32,"skippedEarly":0,"preview":[]},"message":"No changes needed"}
 ```
 
-After a new CSV result (and 180 min past kickoff): `"updated":1` (or more).
+After a new CSV group result (and 180 min past kickoff): `results.updated` ≥ 1. After CSV names a knockout team: `participants.updated` ≥ 1.
 
 **Security**
 
@@ -226,6 +239,39 @@ After a new CSV result (and 180 min past kickoff): `"updated":1` (or more).
 | Empty log / exit 0 midday | Script correctly skips 07:00–19:00 Helsinki |
 | `curl: (22)` / HTTP 4xx | Wrong URL or auth header |
 | No updates though match ended | CSV not updated yet, or within 180 min of `starts_at` |
+
+---
+
+## Match results (`update-match-results.mjs`)
+
+Updates **only** `home_goals`, `away_goals`, and `finished` on existing **group-stage** `matches` rows, keyed by `match_number`. Knockout (`r32` … `final`) scores are **not** auto-synced — enter 90-minute full-time results in admin. Uses the same [Fixture Download UTC CSV](https://fixturedownload.com/download/fifa-world-cup-2026-UTC.csv) as `scrape-wikipedia.mjs`. Does not change teams, slots, kickoff times, or knockout participants.
+
+For the usual cron workflow (participants + group results), use **`sync-tournament.mjs`** or the HTTP cron route instead.
+
+```bash
+node scripts/update-match-results.mjs --dry-run --env app/.env.local
+node scripts/update-match-results.mjs --write --env app/.env.local
+```
+
+`make update-results` runs this script only (group scores). `make sync-tournament` runs the full two-step sync.
+
+### Knockout participants (`sync-knockout-participants.mjs`)
+
+Syncs knockout `home_id` / `away_id` from CSV **Home** / **Away** columns when they contain resolved country names (e.g. `Germany`, `Spain`). Slot codes (`2A`, `Winner Match 74`, `Runner-up Group B`) and TBA cells are ignored — existing IDs are **not** cleared on regression. `home_slot` / `away_slot` are never touched.
+
+```bash
+node scripts/sync-knockout-participants.mjs --dry-run --env app/.env.local
+node scripts/sync-knockout-participants.mjs --write --env app/.env.local
+```
+
+Details:
+
+- CSV team names take precedence over Postgres slot resolution when both are known.
+- Hybrid cells (`Germany` vs `3ABCDF`) update only the resolvable side.
+- `resolve-bracket.mjs` remains available for manual backfill after all group matches finish.
+- Re-running `scrape-wikipedia.mjs --write` clears knockout IDs; the next cron run repopulates from CSV.
+
+Unit tests: `node scripts/test-knockout-participants.mjs` (uses `scripts/fixtures/sample-knockout-sync.csv`).
 
 ---
 

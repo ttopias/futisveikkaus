@@ -1,21 +1,11 @@
 <script lang="ts">
   import type { PageData } from './$types';
-  import type { Team } from '$lib/index';
+  import { sortGroupTeams } from '$lib/bracket-favourite';
   import * as Card from '$lib/components/ui/card';
   import * as Table from '$lib/components/ui/table';
   import TeamFlag from '$lib/components/TeamFlag.svelte';
 
   export let data: PageData;
-
-  function sortGroupTeams(teams: Team[]): Team[] {
-    return [...teams].sort((a, b) => {
-      const ptsA = a.win * 3 + a.draw;
-      const ptsB = b.win * 3 + b.draw;
-      if (ptsB !== ptsA) return ptsB - ptsA;
-      if (b.gf !== a.gf) return b.gf - a.gf;
-      return a.gaa - b.gaa;
-    });
-  }
 
   $: groups = data.teams ? Object.keys(data.teams).sort((a, b) => a.localeCompare(b)) : [];
 

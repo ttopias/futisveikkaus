@@ -6,6 +6,9 @@ init:
 update-results:
 	node scripts/update-match-results.mjs --write --env app/.env.local
 
+sync-tournament:
+	node scripts/sync-tournament.mjs --write --env app/.env.local
+
 dev:
 	cd app && npm install && npm run dev
 
@@ -15,4 +18,4 @@ build:
 clean:
 	cd app && rm -rf node_modules dist
 
-.PHONY: all build clean init dev update-results
+.PHONY: all build clean init dev update-results sync-tournament

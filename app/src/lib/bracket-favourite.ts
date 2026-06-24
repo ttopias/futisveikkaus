@@ -7,8 +7,13 @@ export function sortGroupTeams(teams: Team[]): Team[] {
     const ptsA = a.win * 3 + a.draw;
     const ptsB = b.win * 3 + b.draw;
     if (ptsB !== ptsA) return ptsB - ptsA;
+    const gdA = a.gf - a.gaa;
+    const gdB = b.gf - b.gaa;
+    if (gdB !== gdA) return gdB - gdA;
     if (b.gf !== a.gf) return b.gf - a.gf;
-    return a.gaa - b.gaa;
+    const rankA = a.fifa_rank ?? Number.POSITIVE_INFINITY;
+    const rankB = b.fifa_rank ?? Number.POSITIVE_INFINITY;
+    return rankA - rankB;
   });
 }
 

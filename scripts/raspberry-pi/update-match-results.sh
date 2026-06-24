@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Trigger production match-result sync from a Raspberry Pi (or any cron host).
-# Full setup: scripts/README.md — "Raspberry Pi trigger (Hobby Vercel)"
+# Trigger production tournament sync from a Raspberry Pi (or any cron host).
+# One HTTP call runs knockout participant sync then group match results (same as sync-tournament.mjs).
+# Full setup: scripts/README.md — "Raspberry Pi trigger"
 #
 # Required env vars:
 #   CRON_SECRET          — same value as on Vercel (Authorization: Bearer …)
