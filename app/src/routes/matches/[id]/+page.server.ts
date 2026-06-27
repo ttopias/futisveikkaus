@@ -56,13 +56,7 @@ export const load: PageServerLoad = async ({
   }
 
   const match = enrichMatchWithStageDisplay(m_res.data as unknown as Match);
-
-  if (!isStageAtOrBefore(match.stage, visibleMatchStage)) {
-    error(404, 'This match is not available yet');
-  }
-
-  const stageFirstKickoff = await fetchStageFirstKickoff(supabase, match.stage as MatchStage);
-  const canViewGuesses = canViewMatchGuesses(match, visibleMatchStage, stageFirstKickoff);
+  const matchVisible = isStageAtOrBefore(match.stage, visibleMatchStage);
 
   const profileRes = await supabase
     .from('profiles')
@@ -71,6 +65,21 @@ export const load: PageServerLoad = async ({
     .maybeSingle();
 
   const myProfile = profileRes.data;
+
+  if (!matchVisible) {
+    return {
+      guesses: [],
+      match,
+      user,
+      myProfile,
+      visibleMatchStage,
+      canViewGuesses: false,
+      matchNotYetVisible: true,
+    };
+  }
+
+  const stageFirstKickoff = await fetchStageFirstKickoff(supabase, match.stage as MatchStage);
+  const canViewGuesses = canViewMatchGuesses(match, visibleMatchStage, stageFirstKickoff);
 
   let guesses: Prediction[] = [];
 
@@ -114,5 +123,6 @@ export const load: PageServerLoad = async ({
     myProfile,
     visibleMatchStage,
     canViewGuesses,
+    matchNotYetVisible: false,
   };
 };

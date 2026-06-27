@@ -1,6 +1,20 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { MATCH_STAGES, type MatchStage, isMatchStage } from '$lib/stages';
 
+/** Prediction dependency order (not the same as MATCH_STAGES display order). */
+const STAGE_PREDECESSOR: Partial<Record<MatchStage, MatchStage>> = {
+  r32: 'group',
+  r16: 'r32',
+  qf: 'r16',
+  sf: 'qf',
+  third: 'sf',
+  final: 'sf',
+};
+
+export function stagePredecessor(stage: MatchStage): MatchStage | null {
+  return STAGE_PREDECESSOR[stage] ?? null;
+}
+
 /**
  * First stage (in tournament order) that still has unfinished matches.
  * When every match is finished, returns `final`.
@@ -95,12 +109,76 @@ export function hasStageStarted(stageFirstKickoff: string | null | undefined): b
   return kickoff <= new Date();
 }
 
-/** Predictions stay open for every match of a stage until its first match starts. */
-export function isStagePredictable(stageFirstKickoff: string | null | undefined): boolean {
+type StageMatchTeams = {
+  home?: { team_id?: number } | null;
+  away?: { team_id?: number } | null;
+};
+
+function isStagePredictableByKickoff(stageFirstKickoff: string | null | undefined): boolean {
   if (stageFirstKickoff == null) return false;
   const kickoff = new Date(stageFirstKickoff);
   if (Number.isNaN(kickoff.getTime())) return false;
   return kickoff > new Date();
+}
+
+function allStageMatchesHaveTeams(matches: StageMatchTeams[]): boolean {
+  return (
+    matches.length > 0 &&
+    matches.every((m) => Boolean(m.home?.team_id) && Boolean(m.away?.team_id))
+  );
+}
+
+function allStageMatchesFinished(matches: { finished?: boolean | null }[]): boolean {
+  return matches.length > 0 && matches.every((m) => m.finished);
+}
+
+export function isStagePredictable(
+  stageFirstKickoff: string | null | undefined,
+  stageMatches: StageMatchTeams[],
+  previousStageMatches: { finished?: boolean | null }[] = [],
+): boolean {
+  if (!isStagePredictableByKickoff(stageFirstKickoff)) return false;
+  if (!allStageMatchesHaveTeams(stageMatches)) return false;
+  if (previousStageMatches.length > 0 && !allStageMatchesFinished(previousStageMatches)) {
+    return false;
+  }
+  return true;
+}
+
+export async function fetchStagePredictable(
+  supabase: SupabaseClient,
+  stage: MatchStage,
+): Promise<boolean> {
+  const { data, error } = await supabase.rpc('stage_ready_for_predictions', { p_stage: stage });
+  if (!error && typeof data === 'boolean') {
+    return data;
+  }
+
+  const prev = stagePredecessor(stage);
+  const [stageFirstKickoff, stageRes, prevRes] = await Promise.all([
+    fetchStageFirstKickoff(supabase, stage),
+    supabase
+      .from('matches')
+      .select('home_id, away_id')
+      .eq('stage', stage),
+    prev
+      ? supabase.from('matches').select('finished').eq('stage', prev)
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+
+  if (stageRes.error) {
+    throw new Error(`fetchStagePredictable: ${stageRes.error.message}`);
+  }
+  if (prevRes.error) {
+    throw new Error(`fetchStagePredictable: ${prevRes.error.message}`);
+  }
+
+  const stageMatches = (stageRes.data ?? []).map((m) => ({
+    home: m.home_id ? { team_id: m.home_id } : null,
+    away: m.away_id ? { team_id: m.away_id } : null,
+  }));
+
+  return isStagePredictable(stageFirstKickoff, stageMatches, prevRes.data ?? []);
 }
 
 /** Guesses are revealed for the whole stage once that stage's first match has started. */

@@ -19,6 +19,7 @@
   export let slides: Match[] = [];
   export let form: ActionData;
   export let loading = false;
+  export let stagePredictable = false;
   export let predictableMatches: Match[] = [];
   export let stageFirstKickoff: string | null = null;
 
@@ -147,7 +148,7 @@
                 </div>
               </div>
 
-              <Button class="w-full gap-2" {loading} type="submit">
+              <Button class="w-full gap-2" {loading} type="submit" disabled={!stagePredictable}>
                 <Save class="size-4" />
                 Tallenna
               </Button>

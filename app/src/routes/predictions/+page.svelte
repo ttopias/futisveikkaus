@@ -4,7 +4,6 @@
   import { page } from '$app/stores';
   import type { ActionData, PageData } from './$types';
   import Time from 'svelte-time';
-  import { isStagePredictable } from '$lib/tournament-stage';
   import { matchParticipant } from '$lib/match-participants';
   import TeamFlag from '$lib/components/TeamFlag.svelte';
   import { Button } from '$lib/components/ui/button';
@@ -21,14 +20,17 @@
   export let data: PageData;
   export let form: ActionData;
 
-  let predictableMatches = data?.predictableMatches || [];
+  let predictableMatches: Match[] = [];
   let groupFilter = '';
   let uniqueGroups = new Set(data?.predictions.map((p) => p.group));
   let matches: Prediction[] = [];
   let loading = false;
   let view = 'create';
 
-  $: stagePredictable = isStagePredictable(data?.stageFirstKickoff);
+  $: stagePredictable = data?.stagePredictable ?? false;
+  $: if (data?.predictableMatches) {
+    predictableMatches = data.predictableMatches;
+  }
   $: slides = stagePredictable ? predictableMatches : [];
 
   $: {
@@ -59,6 +61,7 @@
         <PredictionsMatchCarousel
           {slides}
           {form}
+          {stagePredictable}
           bind:loading
           bind:predictableMatches
           stageFirstKickoff={data.stageFirstKickoff}

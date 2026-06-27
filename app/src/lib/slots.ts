@@ -1,1 +1,1 @@
-export { cleanName, parseSlot, slotLabelFi } from '../../../lib/slots.mjs';
+export { cleanName, isThirdPlaceSlot, parseSlot, slotLabelFi, thirdPlaceSlotGroups } from '../../../lib/slots.mjs';

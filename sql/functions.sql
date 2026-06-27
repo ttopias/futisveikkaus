@@ -270,6 +270,65 @@ RETURNS boolean AS $$
     );
 $$ LANGUAGE sql STABLE;
 
+CREATE OR REPLACE FUNCTION stage_predecessor(p_stage public.match_stage)
+RETURNS public.match_stage AS $$
+    SELECT CASE p_stage
+        WHEN 'group' THEN NULL
+        WHEN 'r32' THEN 'group'::public.match_stage
+        WHEN 'r16' THEN 'r32'::public.match_stage
+        WHEN 'qf' THEN 'r16'::public.match_stage
+        WHEN 'sf' THEN 'qf'::public.match_stage
+        WHEN 'third' THEN 'sf'::public.match_stage
+        WHEN 'final' THEN 'sf'::public.match_stage
+    END;
+$$ LANGUAGE sql IMMUTABLE;
+
+CREATE OR REPLACE FUNCTION all_stage_matches_finished(p_stage public.match_stage)
+RETURNS boolean AS $$
+    SELECT NOT EXISTS (
+        SELECT 1
+        FROM matches
+        WHERE stage = p_stage
+          AND NOT finished
+    );
+$$ LANGUAGE sql STABLE;
+
+CREATE OR REPLACE FUNCTION all_stage_matches_have_teams(p_stage public.match_stage)
+RETURNS boolean AS $$
+    SELECT NOT EXISTS (
+        SELECT 1
+        FROM matches
+        WHERE stage = p_stage
+          AND (home_id IS NULL OR away_id IS NULL)
+    );
+$$ LANGUAGE sql STABLE;
+
+-- Predictions open for a stage when the previous stage is finished, every match
+-- in this stage has both teams set, and the stage's first kickoff is still ahead.
+CREATE OR REPLACE FUNCTION stage_ready_for_predictions(p_stage public.match_stage)
+RETURNS boolean AS $$
+DECLARE
+    prev_stage public.match_stage;
+    kickoff timestamptz;
+BEGIN
+    kickoff := stage_first_kickoff(p_stage);
+    IF kickoff IS NULL OR kickoff <= now() THEN
+        RETURN false;
+    END IF;
+
+    IF NOT all_stage_matches_have_teams(p_stage) THEN
+        RETURN false;
+    END IF;
+
+    prev_stage := stage_predecessor(p_stage);
+    IF prev_stage IS NOT NULL AND NOT all_stage_matches_finished(prev_stage) THEN
+        RETURN false;
+    END IF;
+
+    RETURN true;
+END;
+$$ LANGUAGE plpgsql STABLE;
+
 -- Earliest kickoff among matches of a stage. The whole stage shares this single
 -- deadline: predictions lock and guesses become visible once it has passed.
 CREATE OR REPLACE FUNCTION stage_first_kickoff(p_stage public.match_stage)
@@ -314,9 +373,14 @@ RETURNS text[] AS $$
     );
 $$ LANGUAGE sql IMMUTABLE;
 
--- Best third among listed groups (e.g. 3ABCDF slot).
--- Tiebreak order: points, goal difference, goals scored (desc), then fifa_rank (asc, NULLS LAST).
-CREATE OR REPLACE FUNCTION best_third_among_groups(p_groups text[])
+-- Best third among listed groups (e.g. 3ABCDF slot), excluding teams already
+-- assigned to another third-place slot. Tiebreak order: points, goal difference,
+-- goals scored (desc), then fifa_rank (asc, NULLS LAST).
+DROP FUNCTION IF EXISTS public.best_third_among_groups(text[]);
+CREATE OR REPLACE FUNCTION best_third_among_groups(
+    p_groups text[],
+    p_exclude int[] DEFAULT ARRAY[]::int[]
+)
 RETURNS int AS $$
     SELECT team_id
     FROM (
@@ -332,6 +396,7 @@ RETURNS int AS $$
             AND t.team_id = group_qualifier_team_id(g.grp, 3)
     ) ranked
     WHERE team_id IS NOT NULL
+      AND NOT (team_id = ANY(p_exclude))
     ORDER BY
         (win * 3 + draw) DESC,
         (gf - gaa) DESC,
@@ -397,6 +462,105 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql STABLE;
 
+CREATE OR REPLACE FUNCTION resolve_third_place_slot_team_id(
+    p_slot text,
+    p_exclude int[] DEFAULT ARRAY[]::int[]
+)
+RETURNS int AS $$
+BEGIN
+    IF p_slot IS NULL OR p_slot !~ '^3[A-L]+$' THEN
+        RETURN NULL;
+    END IF;
+
+    IF NOT third_place_slot_groups_complete(p_slot) THEN
+        RETURN NULL;
+    END IF;
+
+    RETURN best_third_among_groups(third_place_slot_groups(p_slot), p_exclude);
+END;
+$$ LANGUAGE plpgsql STABLE;
+
+-- Team ids already placed on any R32 match except the given row (group winners,
+-- runners-up, and third-place teams). Used so a third cannot be assigned twice.
+CREATE OR REPLACE FUNCTION r32_assigned_team_ids(p_except_match_id int DEFAULT NULL)
+RETURNS int[] AS $$
+    SELECT COALESCE(array_agg(DISTINCT tid), ARRAY[]::int[])
+    FROM (
+        SELECT home_id AS tid
+        FROM matches
+        WHERE stage = 'r32'
+          AND home_id IS NOT NULL
+          AND (p_except_match_id IS NULL OR match_id <> p_except_match_id)
+        UNION
+        SELECT away_id
+        FROM matches
+        WHERE stage = 'r32'
+          AND away_id IS NOT NULL
+          AND (p_except_match_id IS NULL OR match_id <> p_except_match_id)
+    ) assigned
+    WHERE tid IS NOT NULL;
+$$ LANGUAGE sql STABLE;
+
+CREATE OR REPLACE FUNCTION resolve_third_place_slots(p_apply boolean DEFAULT true)
+RETURNS int AS $$
+DECLARE
+    m RECORD;
+    n int := 0;
+    third_exclude int[] := ARRAY[]::int[];
+    slot_exclude int[] := ARRAY[]::int[];
+    v_home int;
+    v_away int;
+    new_home int;
+    new_away int;
+BEGIN
+    FOR m IN
+        SELECT match_id, home_slot, away_slot, home_id, away_id
+        FROM matches
+        WHERE stage = 'r32'
+          AND (home_slot ~ '^3[A-L]+$' OR away_slot ~ '^3[A-L]+$')
+        ORDER BY match_number
+    LOOP
+        new_home := m.home_id;
+        new_away := m.away_id;
+        slot_exclude := third_exclude || r32_assigned_team_ids(m.match_id);
+
+        IF m.home_slot ~ '^3[A-L]+$' THEN
+            v_home := resolve_third_place_slot_team_id(m.home_slot, slot_exclude);
+            IF v_home IS NOT NULL THEN
+                new_home := v_home;
+                third_exclude := third_exclude || v_home;
+            END IF;
+        END IF;
+
+        IF m.away_slot ~ '^3[A-L]+$' THEN
+            slot_exclude := third_exclude || r32_assigned_team_ids(m.match_id);
+            v_away := resolve_third_place_slot_team_id(m.away_slot, slot_exclude);
+            IF v_away IS NOT NULL THEN
+                new_away := v_away;
+                third_exclude := third_exclude || v_away;
+            END IF;
+        END IF;
+
+        IF new_home IS DISTINCT FROM m.home_id OR new_away IS DISTINCT FROM m.away_id THEN
+            n := n + 1;
+            IF p_apply THEN
+                UPDATE matches
+                SET
+                    home_id = COALESCE(new_home, home_id),
+                    away_id = COALESCE(new_away, away_id)
+                WHERE match_id = m.match_id
+                  AND (
+                      (new_home IS NOT NULL AND home_id IS DISTINCT FROM new_home)
+                      OR (new_away IS NOT NULL AND away_id IS DISTINCT FROM new_away)
+                  );
+            END IF;
+        END IF;
+    END LOOP;
+
+    RETURN n;
+END;
+$$ LANGUAGE plpgsql;
+
 CREATE OR REPLACE FUNCTION resolve_slot_team_id(p_slot text)
 RETURNS int AS $$
 DECLARE
@@ -417,10 +581,7 @@ BEGIN
     END IF;
 
     IF p_slot ~ '^3[A-L]+$' THEN
-        IF NOT third_place_slot_groups_complete(p_slot) THEN
-            RETURN NULL;
-        END IF;
-        RETURN best_third_among_groups(third_place_slot_groups(p_slot));
+        RETURN resolve_third_place_slot_team_id(p_slot);
     END IF;
 
     IF p_slot ~ '^(winner|loser):\d+$' THEN
@@ -444,8 +605,17 @@ DECLARE
     v_home int;
     v_away int;
 BEGIN
-    v_home := resolve_slot_team_id(p_home_slot);
-    v_away := resolve_slot_team_id(p_away_slot);
+    IF p_home_slot ~ '^3[A-L]+$' THEN
+        v_home := NULL;
+    ELSE
+        v_home := resolve_slot_team_id(p_home_slot);
+    END IF;
+
+    IF p_away_slot ~ '^3[A-L]+$' THEN
+        v_away := NULL;
+    ELSE
+        v_away := resolve_slot_team_id(p_away_slot);
+    END IF;
 
     IF (v_home IS NULL OR v_home IS NOT DISTINCT FROM p_current_home)
        AND (v_away IS NULL OR v_away IS NOT DISTINCT FROM p_current_away) THEN
@@ -517,6 +687,7 @@ BEGIN
                   AND position(p_group in substring(away_slot from 2)) > 0
               )
           )
+        ORDER BY match_number
     LOOP
         IF apply_bracket_slot_update(
             m.match_id, m.home_slot, m.away_slot, m.home_id, m.away_id, p_apply
@@ -524,6 +695,7 @@ BEGIN
             n := n + 1;
         END IF;
     END LOOP;
+
     RETURN n;
 END;
 $$ LANGUAGE plpgsql;
@@ -540,6 +712,7 @@ BEGIN
         WHERE stage <> 'group'
           AND home_slot IS NOT NULL
           AND away_slot IS NOT NULL
+        ORDER BY match_number
     LOOP
         IF apply_bracket_slot_update(
             m.match_id, m.home_slot, m.away_slot, m.home_id, m.away_id, p_apply
@@ -547,6 +720,8 @@ BEGIN
             n := n + 1;
         END IF;
     END LOOP;
+
+    n := n + resolve_third_place_slots(p_apply);
     RETURN n;
 END;
 $$ LANGUAGE plpgsql;
@@ -567,6 +742,8 @@ BEGIN
         IF away_grp IS NOT NULL AND away_grp IS DISTINCT FROM home_grp THEN
             PERFORM resolve_bracket_slots_for_group(away_grp, true);
         END IF;
+
+        PERFORM resolve_third_place_slots(true);
     ELSE
         PERFORM resolve_bracket_slots_for_feeder(NEW.match_number, true);
     END IF;
@@ -584,6 +761,12 @@ GRANT EXECUTE ON FUNCTION visible_match_stage() TO anon, authenticated;
 REVOKE ALL ON FUNCTION all_group_stage_complete() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION all_group_stage_complete() TO authenticated;
 
+REVOKE ALL ON FUNCTION stage_predecessor(public.match_stage) FROM PUBLIC;
+REVOKE ALL ON FUNCTION all_stage_matches_finished(public.match_stage) FROM PUBLIC;
+REVOKE ALL ON FUNCTION all_stage_matches_have_teams(public.match_stage) FROM PUBLIC;
+REVOKE ALL ON FUNCTION stage_ready_for_predictions(public.match_stage) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION stage_ready_for_predictions(public.match_stage) TO authenticated;
+
 REVOKE ALL ON FUNCTION stage_first_kickoff(public.match_stage) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION stage_first_kickoff(public.match_stage) TO authenticated;
 
@@ -591,7 +774,10 @@ REVOKE ALL ON FUNCTION group_stage_complete(text) FROM PUBLIC;
 REVOKE ALL ON FUNCTION group_qualifier_team_id(text, int) FROM PUBLIC;
 REVOKE ALL ON FUNCTION third_place_team_id(text) FROM PUBLIC;
 REVOKE ALL ON FUNCTION third_place_slot_groups(text) FROM PUBLIC;
-REVOKE ALL ON FUNCTION best_third_among_groups(text[]) FROM PUBLIC;
+REVOKE ALL ON FUNCTION best_third_among_groups(text[], int[]) FROM PUBLIC;
+REVOKE ALL ON FUNCTION resolve_third_place_slot_team_id(text, int[]) FROM PUBLIC;
+REVOKE ALL ON FUNCTION r32_assigned_team_ids(int) FROM PUBLIC;
+REVOKE ALL ON FUNCTION resolve_third_place_slots(boolean) FROM PUBLIC;
 REVOKE ALL ON FUNCTION third_place_slot_groups_complete(text) FROM PUBLIC;
 REVOKE ALL ON FUNCTION resolve_feeder_team_id(text) FROM PUBLIC;
 REVOKE ALL ON FUNCTION resolve_slot_team_id(text) FROM PUBLIC;

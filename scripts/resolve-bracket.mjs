@@ -9,17 +9,17 @@
  * Automatic resolution also runs from trigger_z_resolve_bracket_slots on match updates.
  */
 
-import process from 'node:process';
-import { connectPgClient, createPgClient, loadEnvFiles } from './lib/db-env.mjs';
+import process from "node:process";
+import { connectPgClient, createPgClient, loadEnvFiles } from "./lib/db-env.mjs";
 
 function parseArgs(argv) {
   const args = { dryRun: true, env: null };
   for (let i = 2; i < argv.length; i++) {
     const a = argv[i];
-    if (a === '--write') args.dryRun = false;
-    else if (a === '--dry-run') args.dryRun = true;
-    else if (a === '--env' && argv[i + 1]) args.env = argv[++i];
-    else if (a === '--help' || a === '-h') {
+    if (a === "--write") args.dryRun = false;
+    else if (a === "--dry-run") args.dryRun = true;
+    else if (a === "--env" && argv[i + 1]) args.env = argv[++i];
+    else if (a === "--help" || a === "-h") {
       console.log(`Usage: node scripts/resolve-bracket.mjs [--dry-run | --write] [--env PATH]`);
       process.exit(0);
     }
@@ -27,27 +27,46 @@ function parseArgs(argv) {
   return args;
 }
 
-const PREVIEW_SQL = `
-  SELECT
-    m.match_number,
-    m.home_id AS cur_home,
-    m.away_id AS cur_away,
-    resolve_slot_team_id(m.home_slot) AS res_home,
-    resolve_slot_team_id(m.away_slot) AS res_away
-  FROM matches m
-  WHERE m.stage <> 'group'
-    AND (
-      (
-        resolve_slot_team_id(m.home_slot) IS NOT NULL
-        AND m.home_id IS DISTINCT FROM resolve_slot_team_id(m.home_slot)
-      )
-      OR (
-        resolve_slot_team_id(m.away_slot) IS NOT NULL
-        AND m.away_id IS DISTINCT FROM resolve_slot_team_id(m.away_slot)
-      )
-    )
-  ORDER BY m.match_number
-`;
+async function previewChanges(client) {
+  await client.query("BEGIN");
+  try {
+    const { rows: before } = await client.query(`
+      SELECT match_id, match_number, home_id, away_id
+      FROM matches
+      WHERE stage <> 'group'
+      ORDER BY match_number
+    `);
+    const beforeById = new Map(before.map((row) => [row.match_id, row]));
+
+    const { rows: countRows } = await client.query("SELECT resolve_bracket_slots(true) AS n");
+    const n = Number(countRows[0]?.n ?? 0);
+
+    const { rows: after } = await client.query(`
+      SELECT match_id, match_number, home_id, away_id
+      FROM matches
+      WHERE stage <> 'group'
+      ORDER BY match_number
+    `);
+
+    const preview = [];
+    for (const row of after) {
+      const prev = beforeById.get(row.match_id);
+      if (!prev) continue;
+      if (prev.home_id === row.home_id && prev.away_id === row.away_id) continue;
+      preview.push({
+        match_number: row.match_number,
+        cur_home: prev.home_id,
+        cur_away: prev.away_id,
+        res_home: row.home_id,
+        res_away: row.away_id,
+      });
+    }
+
+    return { n, preview };
+  } finally {
+    await client.query("ROLLBACK");
+  }
+}
 
 async function main() {
   const args = parseArgs(process.argv);
@@ -58,21 +77,19 @@ async function main() {
 
   try {
     if (args.dryRun) {
-      const { rows: preview } = await client.query(PREVIEW_SQL);
-      const { rows: countRows } = await client.query('SELECT resolve_bracket_slots(false) AS n');
-      const n = Number(countRows[0]?.n ?? 0);
+      const { n, preview } = await previewChanges(client);
       console.log(`Resolvable updates: ${n} match(es).`);
       for (const row of preview.slice(0, 10)) {
         console.log(
-          `  #${row.match_number}: home ${row.cur_home ?? '—'} -> ${row.res_home ?? '—'}, ` +
-            `away ${row.cur_away ?? '—'} -> ${row.res_away ?? '—'}`,
+          `  #${row.match_number}: home ${row.cur_home ?? "—"} -> ${row.res_home ?? "—"}, ` +
+            `away ${row.cur_away ?? "—"} -> ${row.res_away ?? "—"}`,
         );
       }
       if (preview.length > 10) console.log(`  … and ${preview.length - 10} more`);
       return;
     }
 
-    const { rows } = await client.query('SELECT resolve_bracket_slots(true) AS updated');
+    const { rows } = await client.query("SELECT resolve_bracket_slots(true) AS updated");
     console.log(`Updated ${Number(rows[0]?.updated ?? 0)} match(es).`);
   } finally {
     await client.end();

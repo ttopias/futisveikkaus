@@ -1,33 +1,9 @@
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import type { Match, Team } from '$lib/index';
-import { buildRankedGroups, slotFavourite } from '$lib/bracket-favourite';
+import { buildRankedGroups, enrichR32Favourites } from '$lib/bracket-favourite';
 import { MATCH_PARTICIPANT_DISPLAY_SELECT } from '$lib/match-participants';
 import { enrichMatchesWithStageDisplay } from '$lib/stages';
-
-function isUnresolvedParticipant(team: Team | null | undefined): boolean {
-  return !team?.team_id;
-}
-
-function enrichR32Favourites(
-  matches: Match[],
-  rankedGroups: Record<string, Team[]>,
-): Match[] {
-  return matches.map((match) => {
-    if (match.stage !== 'r32') return match;
-    return {
-      ...match,
-      home_favourite:
-        match.home_slot && isUnresolvedParticipant(match.home)
-          ? slotFavourite(match.home_slot, rankedGroups)
-          : null,
-      away_favourite:
-        match.away_slot && isUnresolvedParticipant(match.away)
-          ? slotFavourite(match.away_slot, rankedGroups)
-          : null,
-    };
-  });
-}
 
 export const load: PageServerLoad = async ({ locals: { supabase } }) => {
   const [matchesRes, teamsRes, unfinishedGroupRes] = await Promise.all([

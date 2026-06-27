@@ -59,11 +59,7 @@ CREATE POLICY guesses_insert_own ON guesses
     AND EXISTS (
       SELECT 1 FROM matches m
       WHERE m.match_id = guesses.match_id
-        AND stage_first_kickoff(m.stage) > now()
-        AND (
-          (m.stage = 'group' AND NOT all_group_stage_complete())
-          OR (m.stage <> 'group' AND all_group_stage_complete())
-        )
+        AND stage_ready_for_predictions(m.stage)
     )
   );
 
@@ -75,11 +71,7 @@ CREATE POLICY guesses_update_own ON guesses
     AND EXISTS (
       SELECT 1 FROM matches m
       WHERE m.match_id = guesses.match_id
-        AND stage_first_kickoff(m.stage) > now()
-        AND (
-          (m.stage = 'group' AND NOT all_group_stage_complete())
-          OR (m.stage <> 'group' AND all_group_stage_complete())
-        )
+        AND stage_ready_for_predictions(m.stage)
     )
   );
 
@@ -90,10 +82,6 @@ CREATE POLICY guesses_delete_own ON guesses
     AND EXISTS (
       SELECT 1 FROM matches m
       WHERE m.match_id = guesses.match_id
-        AND stage_first_kickoff(m.stage) > now()
-        AND (
-          (m.stage = 'group' AND NOT all_group_stage_complete())
-          OR (m.stage <> 'group' AND all_group_stage_complete())
-        )
+        AND stage_ready_for_predictions(m.stage)
     )
   );
