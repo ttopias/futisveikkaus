@@ -7,6 +7,7 @@ import {
   buildStandingsChartData,
   countCalculatedGuessesByUser,
 } from '$lib/standings-chart';
+import { fetchAllCalculatedGuesses } from '$lib/server/standingsStats';
 import { supabaseAdminClient } from '$lib/server/supabaseAdminClient';
 import { sortPredsByDateTime } from '$lib/utils';
 
@@ -19,7 +20,7 @@ export const load: PageServerLoad = async ({ params, locals: { supabase, safeGet
 
   const userId = params.userId;
 
-  const [profileRes, standingsRes, matchesRes, allGuessesRes, userGuessesRes] =
+  const [profileRes, standingsRes, matchesRes, allGuesses, userGuessesRes] =
     await Promise.all([
       supabase.from('profiles').select('first_name').eq('id', userId).maybeSingle(),
       supabase
@@ -31,10 +32,7 @@ export const load: PageServerLoad = async ({ params, locals: { supabase, safeGet
         .select('match_id, match_number')
         .eq('finished', true)
         .order('match_number', { ascending: true }),
-      supabaseAdminClient
-        .from('guesses')
-        .select('user_id, match_id, points')
-        .eq('points_calculated', true),
+      fetchAllCalculatedGuesses(),
       supabaseAdminClient
         .from('guesses')
         .select(
@@ -76,10 +74,6 @@ export const load: PageServerLoad = async ({ params, locals: { supabase, safeGet
     error(500, matchesRes.error.message);
   }
 
-  if (allGuessesRes.error) {
-    error(500, allGuessesRes.error.message);
-  }
-
   if (userGuessesRes.error) {
     error(500, userGuessesRes.error.message);
   }
@@ -94,7 +88,7 @@ export const load: PageServerLoad = async ({ params, locals: { supabase, safeGet
       first_name: row.first_name,
     })),
     matchesRes.data,
-    allGuessesRes.data,
+    allGuesses,
   );
 
   const thisSeries = fullChartData.series.find((s) => s.userId === userId);
@@ -103,7 +97,7 @@ export const load: PageServerLoad = async ({ params, locals: { supabase, safeGet
     series: thisSeries ? [thisSeries] : [],
   };
   const playerCount = fullChartData.series.length;
-  const guessCounts = countCalculatedGuessesByUser(allGuessesRes.data);
+  const guessCounts = countCalculatedGuessesByUser(allGuesses);
   const showCharts =
     (guessCounts.get(userId) ?? 0) > 1 &&
     chartData.timeline.length > 0 &&
