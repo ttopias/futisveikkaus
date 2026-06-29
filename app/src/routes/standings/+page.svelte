@@ -25,6 +25,7 @@
     if (key === 'avg_points') return row.avg_points ?? 0;
     if (key === 'points_6') return row.points_6 ?? 0;
     if (key === 'points_4') return row.points_4 ?? 0;
+    if (key === 'points_3') return row.points_3 ?? 0;
     if (key === 'points_neg2') return row.points_neg2 ?? 0;
     if (key === 'points_neg4') return row.points_neg4 ?? 0;
     return '';
@@ -109,6 +110,20 @@
                 variant="ghost"
                 size="sm"
                 class="h-auto gap-1 px-0 font-medium hover:bg-transparent"
+                on:click={() => handleSort('points_3')}
+              >
+                +3
+                {#if sortKey === 'points_3'}
+                  <span class="text-xs" aria-hidden="true">{sortDir === 'asc' ? '↑' : '↓'}</span>
+                {/if}
+              </Button>
+            </Table.Head>
+            <Table.Head class="whitespace-nowrap">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                class="h-auto gap-1 px-0 font-medium hover:bg-transparent"
                 on:click={() => handleSort('points_neg2')}
               >
                 -2
@@ -153,6 +168,9 @@
               </Table.Cell>
               <Table.Cell class="min-w-0 align-middle">
                 <span class="break-words tabular-nums">{row.points_4 ?? 0}</span>
+              </Table.Cell>
+              <Table.Cell class="min-w-0 align-middle">
+                <span class="break-words tabular-nums">{row.points_3 ?? 0}</span>
               </Table.Cell>
               <Table.Cell class="min-w-0 align-middle">
                 <span class="break-words tabular-nums">{row.points_neg2 ?? 0}</span>

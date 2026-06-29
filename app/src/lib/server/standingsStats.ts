@@ -20,7 +20,7 @@ export async function fetchAllCalculatedGuesses(): Promise<CalculatedGuessRow[]>
 }
 
 function emptyPointCounts() {
-  return { 6: 0, 4: 0, [-2]: 0, [-4]: 0 };
+  return { 6: 0, 4: 0, 3: 0, [-2]: 0, [-4]: 0 };
 }
 
 export function applyStandingsStats(standings: User[], guesses: CalculatedGuessRow[]): void {
@@ -30,10 +30,10 @@ export function applyStandingsStats(standings: User[], guesses: CalculatedGuessR
   for (const g of guesses) {
     guessCountByUser.set(g.user_id, (guessCountByUser.get(g.user_id) ?? 0) + 1);
 
-    if (g.points !== 6 && g.points !== 4 && g.points !== -2 && g.points !== -4) continue;
+    if (g.points !== 6 && g.points !== 4 && g.points !== 3 && g.points !== -2 && g.points !== -4) continue;
 
     const userCounts = pointCountsByUser.get(g.user_id) ?? emptyPointCounts();
-    userCounts[g.points as 6 | 4 | -2 | -4] += 1;
+    userCounts[g.points as 6 | 4 | 3 | -2 | -4] += 1;
     pointCountsByUser.set(g.user_id, userCounts);
   }
 
@@ -46,6 +46,7 @@ export function applyStandingsStats(standings: User[], guesses: CalculatedGuessR
     row.avg_points = guessCount ? (row.total_points ?? 0) / guessCount : 0;
     row.points_6 = counts?.[6] ?? 0;
     row.points_4 = counts?.[4] ?? 0;
+    row.points_3 = counts?.[3] ?? 0;
     row.points_neg2 = counts?.[-2] ?? 0;
     row.points_neg4 = counts?.[-4] ?? 0;
   }
