@@ -22,8 +22,11 @@
   function cellValue(row: User, key: string): string | number {
     if (key === 'first_name') return row.first_name;
     if (key === 'total_points') return row.total_points ?? 0;
-    if (key === 'correct_pct') return row.correct_pct ?? 0;
     if (key === 'avg_points') return row.avg_points ?? 0;
+    if (key === 'points_6') return row.points_6 ?? 0;
+    if (key === 'points_4') return row.points_4 ?? 0;
+    if (key === 'points_neg2') return row.points_neg2 ?? 0;
+    if (key === 'points_neg4') return row.points_neg4 ?? 0;
     return '';
   }
 
@@ -39,11 +42,6 @@
 
 <div class="mx-auto flex w-full max-w-4xl flex-col gap-4">
   <Card.Root class="max-w-4xl overflow-hidden shadow-sm">
-    <Card.Content class="pt-6">
-      <p class="mb-4 text-sm text-muted-foreground">
-        Oikein% = oikein veikatut lopputulokset (vähintään 3 pistettä) / pelatut ottelut
-      </p>
-    </Card.Content>
     <ScrollArea.Root orientation="horizontal">
       <Table.Root>
         <Table.Header>
@@ -83,10 +81,52 @@
                 variant="ghost"
                 size="sm"
                 class="h-auto gap-1 px-0 font-medium hover:bg-transparent"
-                on:click={() => handleSort('correct_pct')}
+                on:click={() => handleSort('points_6')}
               >
-                OIKEIN%
-                {#if sortKey === 'correct_pct'}
+                +6
+                {#if sortKey === 'points_6'}
+                  <span class="text-xs" aria-hidden="true">{sortDir === 'asc' ? '↑' : '↓'}</span>
+                {/if}
+              </Button>
+            </Table.Head>
+            <Table.Head class="whitespace-nowrap">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                class="h-auto gap-1 px-0 font-medium hover:bg-transparent"
+                on:click={() => handleSort('points_4')}
+              >
+                +4
+                {#if sortKey === 'points_4'}
+                  <span class="text-xs" aria-hidden="true">{sortDir === 'asc' ? '↑' : '↓'}</span>
+                {/if}
+              </Button>
+            </Table.Head>
+            <Table.Head class="whitespace-nowrap">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                class="h-auto gap-1 px-0 font-medium hover:bg-transparent"
+                on:click={() => handleSort('points_neg2')}
+              >
+                -2
+                {#if sortKey === 'points_neg2'}
+                  <span class="text-xs" aria-hidden="true">{sortDir === 'asc' ? '↑' : '↓'}</span>
+                {/if}
+              </Button>
+            </Table.Head>
+            <Table.Head class="whitespace-nowrap">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                class="h-auto gap-1 px-0 font-medium hover:bg-transparent"
+                on:click={() => handleSort('points_neg4')}
+              >
+                -4
+                {#if sortKey === 'points_neg4'}
                   <span class="text-xs" aria-hidden="true">{sortDir === 'asc' ? '↑' : '↓'}</span>
                 {/if}
               </Button>
@@ -109,7 +149,16 @@
                 <span class="break-words tabular-nums">{(row.avg_points ?? 0).toFixed(2)}</span>
               </Table.Cell>
               <Table.Cell class="min-w-0 align-middle">
-                <span class="break-words tabular-nums">{(row.correct_pct ?? 0).toFixed(0)} %</span>
+                <span class="break-words tabular-nums">{row.points_6 ?? 0}</span>
+              </Table.Cell>
+              <Table.Cell class="min-w-0 align-middle">
+                <span class="break-words tabular-nums">{row.points_4 ?? 0}</span>
+              </Table.Cell>
+              <Table.Cell class="min-w-0 align-middle">
+                <span class="break-words tabular-nums">{row.points_neg2 ?? 0}</span>
+              </Table.Cell>
+              <Table.Cell class="min-w-0 align-middle">
+                <span class="break-words tabular-nums">{row.points_neg4 ?? 0}</span>
               </Table.Cell>
             </Table.Row>
           {/each}

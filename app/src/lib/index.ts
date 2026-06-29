@@ -62,8 +62,11 @@ export type User = {
   user_id?: string;
   id?: string;
   total_points?: number;
-  correct_pct?: number;
   avg_points?: number;
+  points_6?: number;
+  points_4?: number;
+  points_neg2?: number;
+  points_neg4?: number;
   first_name: string;
 };
 

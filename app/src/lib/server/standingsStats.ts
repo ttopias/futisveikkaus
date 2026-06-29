@@ -19,28 +19,34 @@ export async function fetchAllCalculatedGuesses(): Promise<CalculatedGuessRow[]>
   );
 }
 
-export function applyStandingsStats(
-  standings: User[],
-  guesses: CalculatedGuessRow[],
-  finishedMatchCount: number,
-): void {
-  const correctByUser = new Map<string, number>();
+function emptyPointCounts() {
+  return { 6: 0, 4: 0, [-2]: 0, [-4]: 0 };
+}
+
+export function applyStandingsStats(standings: User[], guesses: CalculatedGuessRow[]): void {
   const guessCountByUser = new Map<string, number>();
+  const pointCountsByUser = new Map<string, ReturnType<typeof emptyPointCounts>>();
 
   for (const g of guesses) {
     guessCountByUser.set(g.user_id, (guessCountByUser.get(g.user_id) ?? 0) + 1);
-    if (g.points >= 3) {
-      correctByUser.set(g.user_id, (correctByUser.get(g.user_id) ?? 0) + 1);
-    }
+
+    if (g.points !== 6 && g.points !== 4 && g.points !== -2 && g.points !== -4) continue;
+
+    const userCounts = pointCountsByUser.get(g.user_id) ?? emptyPointCounts();
+    userCounts[g.points as 6 | 4 | -2 | -4] += 1;
+    pointCountsByUser.set(g.user_id, userCounts);
   }
 
   for (const row of standings) {
     if (!row.user_id) continue;
 
     const guessCount = guessCountByUser.get(row.user_id) ?? 0;
+    const counts = pointCountsByUser.get(row.user_id);
+
     row.avg_points = guessCount ? (row.total_points ?? 0) / guessCount : 0;
-    row.correct_pct = finishedMatchCount
-      ? ((correctByUser.get(row.user_id) ?? 0) / finishedMatchCount) * 100
-      : 0;
+    row.points_6 = counts?.[6] ?? 0;
+    row.points_4 = counts?.[4] ?? 0;
+    row.points_neg2 = counts?.[-2] ?? 0;
+    row.points_neg4 = counts?.[-4] ?? 0;
   }
 }

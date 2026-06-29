@@ -39,7 +39,7 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
   }
 
   const standings = standingsRes.data as unknown as User[];
-  applyStandingsStats(standings, guesses, matchesRes.data.length);
+  applyStandingsStats(standings, guesses);
 
   const chartData = buildStandingsChartData(
     standingsRes.data.map((row) => ({
