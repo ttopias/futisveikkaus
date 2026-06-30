@@ -54,6 +54,28 @@
     value: stage,
     label: visibleStageLabelFi(stage),
   }));
+
+  let editStartsAt = '';
+  let editHomeGoals = 0;
+  let editAwayGoals = 0;
+  let editFinished = false;
+  let editAdvancerId = '';
+
+  $: needsAdvancerPick =
+    Boolean(editingMatch) &&
+    !editingMatch?.groupStage &&
+    editFinished &&
+    editHomeGoals === editAwayGoals;
+
+  function openEditMatch(match: Match) {
+    editingMatch = match;
+    editStartsAt = toDatetimeLocal(match.starts_at);
+    editHomeGoals = match.home_goals;
+    editAwayGoals = match.away_goals;
+    editFinished = match.finished;
+    editAdvancerId = '';
+    editOpen = true;
+  }
 </script>
 
 <AdminNav />
@@ -155,7 +177,10 @@
 <Dialog.Root
   bind:open={editOpen}
   onOpenChange={(open) => {
-    if (!open) editingMatch = null;
+    if (!open) {
+      editingMatch = null;
+      editAdvancerId = '';
+    }
   }}
 >
   <Dialog.Content class="max-w-sm gap-4 sm:max-w-md">
@@ -173,40 +198,49 @@
         class="space-y-3"
         use:enhance={() => {
           loading = true;
-          return async ({ update }) => {
-            update();
+          return async ({ result, update }) => {
+            await update();
             loading = false;
-            editingMatch = null;
-            editOpen = false;
+            if (result.type === 'success') {
+              editingMatch = null;
+              editOpen = false;
+              editAdvancerId = '';
+            }
           };
         }}
       >
         <input type="hidden" name="match_id" value={editingMatch.match_id} />
+        {#if editAdvancerId}
+          <input type="hidden" name="advancer_team_id" value={editAdvancerId} />
+        {/if}
         <div class="space-y-2">
-          <Label>Aloitusaika</Label>
+          <Label for="edit-starts-at">Aloitusaika</Label>
           <Input
+            id="edit-starts-at"
             name="starts_at"
             type="datetime-local"
-            value={toDatetimeLocal(form?.starts_at ?? editingMatch?.starts_at)}
+            bind:value={editStartsAt}
           />
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div class="space-y-2">
-            <Label>Koti maalit</Label>
+            <Label for="edit-home-goals">Koti maalit</Label>
             <Input
+              id="edit-home-goals"
               name="home_goals"
               type="number"
               min="0"
-              value={form?.home_goals ?? editingMatch?.home_goals}
+              bind:value={editHomeGoals}
             />
           </div>
           <div class="space-y-2">
-            <Label>Vieras maalit</Label>
+            <Label for="edit-away-goals">Vieras maalit</Label>
             <Input
+              id="edit-away-goals"
               name="away_goals"
               type="number"
               min="0"
-              value={form?.away_goals ?? editingMatch?.away_goals}
+              bind:value={editAwayGoals}
             />
           </div>
         </div>
@@ -215,12 +249,57 @@
             name="finished"
             type="checkbox"
             value="true"
-            checked={form?.finished ?? editingMatch?.finished ?? false}
+            bind:checked={editFinished}
             class="h-4 w-4 rounded border-input"
           />
           Ottelu päättynyt (laskee pisteet)
         </label>
-        <Button class="w-full" {loading} type="submit">Tallenna</Button>
+        {#if needsAdvancerPick}
+          <div class="grid grid-cols-1 gap-2">
+            {#if editingMatch.home?.team_id}
+              <Button
+                type="button"
+                variant={editAdvancerId === String(editingMatch.home.team_id) ? 'default' : 'outline'}
+                class="h-auto justify-start gap-3 py-3"
+                on:click={() => (editAdvancerId = String(editingMatch.home!.team_id))}
+              >
+                <TeamFlag
+                  countryCode={editingMatch.home.country_code}
+                  name={editingMatch.home.name}
+                  width={28}
+                  height={28}
+                  class="h-7 w-7 rounded-full object-cover"
+                />
+                {editingMatch.home.name}
+              </Button>
+            {/if}
+            {#if editingMatch.away?.team_id}
+              <Button
+                type="button"
+                variant={editAdvancerId === String(editingMatch.away.team_id) ? 'default' : 'outline'}
+                class="h-auto justify-start gap-3 py-3"
+                on:click={() => (editAdvancerId = String(editingMatch.away!.team_id))}
+              >
+                <TeamFlag
+                  countryCode={editingMatch.away.country_code}
+                  name={editingMatch.away.name}
+                  width={28}
+                  height={28}
+                  class="h-7 w-7 rounded-full object-cover"
+                />
+                {editingMatch.away.name}
+              </Button>
+            {/if}
+          </div>
+        {/if}
+        <Button
+          class="w-full"
+          {loading}
+          type="submit"
+          disabled={needsAdvancerPick && !editAdvancerId}
+        >
+          Tallenna
+        </Button>
       </form>
     {/if}
   </Dialog.Content>
@@ -255,12 +334,7 @@
               </Button>
             </DropdownMenu.Trigger>
             <DropdownMenu.Content align="end">
-              <DropdownMenu.Item
-                on:click={() => {
-                  editingMatch = match;
-                  editOpen = true;
-                }}
-              >
+              <DropdownMenu.Item on:click={() => openEditMatch(match)}>
                 <Pencil class="mr-2 size-4" />
                 Muokkaa
               </DropdownMenu.Item>

@@ -6,6 +6,14 @@ import { requireAdmin } from '$lib/server/requireAdmin';
 import { supabaseAdminClient } from '$lib/server/supabaseAdminClient';
 import type { Actions, PageServerLoad } from './$types';
 import { error, fail } from '@sveltejs/kit';
+import { applyKnockoutTieAdvancer } from '../../../../scripts/lib/knockout-tie-advancer.mjs';
+
+function parseOptionalTeamId(value: FormDataEntryValue | null): number | null {
+  const raw = value?.toString().trim();
+  if (!raw) return null;
+  const id = parseInt(raw, 10);
+  return Number.isFinite(id) && id > 0 ? id : null;
+}
 
 export const load: PageServerLoad = async ({ locals: { safeGetSession } }) => {
   const { user } = await safeGetSession();
@@ -108,9 +116,37 @@ export const actions: Actions = {
     const home_goals = parseInt(form_data.get('home_goals')?.toString() || '0');
     const away_goals = parseInt(form_data.get('away_goals')?.toString() || '0');
     const finished = form_data.get('finished') === 'true';
+    const advancer_team_id = parseOptionalTeamId(form_data.get('advancer_team_id'));
 
     if (!match_id) {
       return fail(400, { error: 'Invalid data' });
+    }
+
+    const existingRes = await supabaseAdminClient
+      .from('matches')
+      .select('match_number, stage, home_id, away_id')
+      .eq('match_id', match_id)
+      .single();
+
+    if (existingRes.error || !existingRes.data) {
+      return fail(404, { error: 'Ottelua ei löytynyt' });
+    }
+
+    const { match_number, stage, home_id: existingHomeId, away_id: existingAwayId } = existingRes.data;
+    const isKnockout = stage !== 'group';
+    const isTie = home_goals === away_goals;
+    const tiedKnockout = isKnockout && finished && isTie;
+
+    if (tiedKnockout) {
+      if (!existingHomeId || !existingAwayId) {
+        return fail(400, { error: 'Molemmat joukkueet täytyy olla tiedossa.' });
+      }
+      if (!advancer_team_id) {
+        return fail(400, { error: 'Valitse jatkoon pääsevä joukkue.' });
+      }
+      if (advancer_team_id !== existingHomeId && advancer_team_id !== existingAwayId) {
+        return fail(400, { error: 'Valittu joukkue ei ole tässä ottelussa.' });
+      }
     }
 
     const update: Record<string, unknown> = {
@@ -126,19 +162,28 @@ export const actions: Actions = {
 
     if (res.error) {
       console.error('Update failed:', res.error);
-      return fail(422, {
-        error: res.error.message,
-      });
+      return fail(422, { error: res.error.message });
     }
 
-    return {
-      success: 'Ottelu päivitetty',
-      match_id,
-      starts_at,
-      home_goals,
-      away_goals,
-      finished,
-    };
+    if (tiedKnockout && advancer_team_id) {
+      const loserTeamId =
+        advancer_team_id === existingHomeId ? existingAwayId! : existingHomeId!;
+      try {
+        await applyKnockoutTieAdvancer(
+          supabaseAdminClient,
+          match_number,
+          advancer_team_id,
+          loserTeamId,
+        );
+      } catch (err) {
+        console.error('Knockout tie advancer failed:', err);
+        return fail(422, {
+          error: 'Tulos tallennettiin, mutta jatko-otteluita ei voitu päivittää. Yritä uudelleen.',
+        });
+      }
+    }
+
+    return { success: 'Ottelu päivitetty' };
   },
 
   delete: async ({ request, locals: { safeGetSession } }) => {
