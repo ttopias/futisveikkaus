@@ -63,6 +63,7 @@ WHEN (
     AND (
       OLD.home_goals IS DISTINCT FROM NEW.home_goals
       OR OLD.away_goals IS DISTINCT FROM NEW.away_goals
+      OR OLD.winner_id IS DISTINCT FROM NEW.winner_id
     )
   )
 )

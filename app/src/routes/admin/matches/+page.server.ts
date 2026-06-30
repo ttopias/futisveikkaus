@@ -7,6 +7,13 @@ import { supabaseAdminClient } from '$lib/server/supabaseAdminClient';
 import type { Actions, PageServerLoad } from './$types';
 import { error, fail } from '@sveltejs/kit';
 
+function parseOptionalTeamId(value: FormDataEntryValue | null): number | null {
+  const raw = value?.toString().trim();
+  if (!raw) return null;
+  const id = parseInt(raw, 10);
+  return Number.isFinite(id) && id > 0 ? id : null;
+}
+
 export const load: PageServerLoad = async ({ locals: { safeGetSession } }) => {
   const { user } = await safeGetSession();
   requireAdmin(user);
@@ -24,7 +31,8 @@ export const load: PageServerLoad = async ({ locals: { safeGetSession } }) => {
     ${MATCH_PARTICIPANT_SELECT},
     home_goals,
     away_goals,
-    finished
+    finished,
+    winner_id
   `,
     ),
     supabaseAdminClient.from('teams').select('*'),
@@ -108,15 +116,63 @@ export const actions: Actions = {
     const home_goals = parseInt(form_data.get('home_goals')?.toString() || '0');
     const away_goals = parseInt(form_data.get('away_goals')?.toString() || '0');
     const finished = form_data.get('finished') === 'true';
+    const winner_id = parseOptionalTeamId(form_data.get('winner_id'));
 
     if (!match_id) {
       return fail(400, { error: 'Invalid data' });
+    }
+
+    const existingRes = await supabaseAdminClient
+      .from('matches')
+      .select('stage, home_id, away_id')
+      .eq('match_id', match_id)
+      .single();
+
+    if (existingRes.error || !existingRes.data) {
+      return fail(404, { error: 'Ottelua ei löytynyt' });
+    }
+
+    const { stage, home_id: existingHomeId, away_id: existingAwayId } = existingRes.data;
+    const isKnockout = stage !== 'group';
+    const isTie = home_goals === away_goals;
+
+    if (isKnockout && finished && isTie) {
+      if (!existingHomeId || !existingAwayId) {
+        return fail(400, {
+          error: 'Tasapelissä molempien joukkueiden täytyy olla tiedossa ennen tuloksen tallennusta.',
+          match_id,
+          home_goals,
+          away_goals,
+          finished,
+        });
+      }
+      if (!winner_id) {
+        return fail(400, {
+          error: 'Valitse jatkoon pääsevä joukkue.',
+          needsAdvancer: true,
+          match_id,
+          home_goals,
+          away_goals,
+          finished,
+        });
+      }
+      if (winner_id !== existingHomeId && winner_id !== existingAwayId) {
+        return fail(400, {
+          error: 'Jatkoon valittu joukkue ei ole tässä ottelussa.',
+          needsAdvancer: true,
+          match_id,
+          home_goals,
+          away_goals,
+          finished,
+        });
+      }
     }
 
     const update: Record<string, unknown> = {
       home_goals,
       away_goals,
       finished,
+      winner_id: isKnockout && finished && isTie ? winner_id : null,
     };
     if (starts_at) {
       update.starts_at = starts_at;
@@ -128,6 +184,10 @@ export const actions: Actions = {
       console.error('Update failed:', res.error);
       return fail(422, {
         error: res.error.message,
+        match_id,
+        home_goals,
+        away_goals,
+        finished,
       });
     }
 

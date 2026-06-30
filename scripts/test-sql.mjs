@@ -508,6 +508,72 @@ async function testStageReadyForPredictions(client) {
   );
 }
 
+async function testTiedKnockoutWinner(client, teamIds) {
+  const a1 = teamIds["Test A1"];
+  const a2 = teamIds["Test A2"];
+
+  await client.query(
+    `ALTER TABLE matches ADD COLUMN IF NOT EXISTS winner_id int REFERENCES teams(team_id)`,
+  );
+
+  const feeder = await queryOne(
+    client,
+    `INSERT INTO matches (
+       match_number, stage, starts_at,
+       home_slot, away_slot,
+       home_id, away_id,
+       home_goals, away_goals, finished
+     )
+     VALUES (90012, 'r16', now() - interval '1 day', '1A', '2A', $1, $2, 1, 1, true)
+     RETURNING match_id`,
+    [a1, a2],
+  );
+
+  let unresolved = await queryOne(
+    client,
+    `SELECT resolve_feeder_team_id('winner:90012') AS team_id`,
+  );
+  assert(unresolved.team_id === null, "tied knockout without winner_id does not advance");
+
+  const ko = await queryOne(
+    client,
+    `INSERT INTO matches (
+       match_number, stage, starts_at,
+       home_slot, away_slot,
+       home_goals, away_goals, finished
+     )
+     VALUES (90013, 'qf', now() + interval '2 days', 'winner:90012', 'loser:90012', 0, 0, false)
+     RETURNING match_id, home_id, away_id`,
+  );
+  assert(ko.home_id === null && ko.away_id === null, "downstream slots empty before winner_id");
+
+  await client.query(`UPDATE matches SET winner_id = $2 WHERE match_id = $1`, [feeder.match_id, a2]);
+
+  const winnerSide = await queryOne(
+    client,
+    `SELECT resolve_feeder_team_id('winner:90012') AS team_id`,
+  );
+  const loserSide = await queryOne(
+    client,
+    `SELECT resolve_feeder_team_id('loser:90012') AS team_id`,
+  );
+  assert(winnerSide.team_id === a2, "winner_id sets winner slot on tied knockout");
+  assert(loserSide.team_id === a1, "winner_id sets loser slot on tied knockout");
+
+  const applied = await queryOne(
+    client,
+    `SELECT resolve_bracket_slots_for_feeder(90012, true) AS n`,
+  );
+  assert(applied.n >= 1, "feeder resolve applies winner_id to downstream match");
+
+  const after = await queryOne(
+    client,
+    `SELECT home_id, away_id FROM matches WHERE match_id = $1`,
+    [ko.match_id],
+  );
+  assert(after.home_id === a2 && after.away_id === a1, "downstream match filled from winner_id");
+}
+
 async function testBracketResolver(client, teamIds) {
   const a1 = teamIds["Test A1"];
   const a2 = teamIds["Test A2"];
@@ -571,6 +637,7 @@ const tests = [
   { name: "third-place excludes group qualifiers", fn: testThirdPlaceExcludesGroupQualifier },
   { name: "stage readiness for predictions", fn: testStageReadyForPredictions },
   { name: "bracket slots (1A, winner:N, no loop)", fn: testBracketResolver, enableBracketTrigger: true },
+  { name: "tied knockout winner_id advances bracket", fn: testTiedKnockoutWinner },
 ];
 
 async function run() {

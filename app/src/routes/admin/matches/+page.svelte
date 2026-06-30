@@ -54,6 +54,29 @@
     value: stage,
     label: visibleStageLabelFi(stage),
   }));
+
+  type EditStep = 'form' | 'advancer';
+  let editStep: EditStep = 'form';
+  let editStartsAt = '';
+  let editHomeGoals = 0;
+  let editAwayGoals = 0;
+  let editFinished = false;
+  let editWinnerId = '';
+
+  function openEditMatch(match: Match) {
+    editingMatch = match;
+    editStep = 'form';
+    editStartsAt = toDatetimeLocal(match.starts_at);
+    editHomeGoals = match.home_goals;
+    editAwayGoals = match.away_goals;
+    editFinished = match.finished;
+    editWinnerId = match.winner_id ? String(match.winner_id) : '';
+    editOpen = true;
+  }
+
+  function selectAdvancer(teamId: number) {
+    editWinnerId = String(teamId);
+  }
 </script>
 
 <AdminNav />
@@ -155,13 +178,23 @@
 <Dialog.Root
   bind:open={editOpen}
   onOpenChange={(open) => {
-    if (!open) editingMatch = null;
+    if (!open) {
+      editingMatch = null;
+      editStep = 'form';
+      editWinnerId = '';
+    }
   }}
 >
   <Dialog.Content class="max-w-sm gap-4 sm:max-w-md">
     {#if editingMatch}
       <Dialog.Header>
-        <Dialog.Title>Muokkaa ottelua #{editingMatch.match_number}</Dialog.Title>
+        <Dialog.Title>
+          {#if editStep === 'advancer'}
+            Valitse jatkoon pääsevä joukkue
+          {:else}
+            Muokkaa ottelua #{editingMatch.match_number}
+          {/if}
+        </Dialog.Title>
         <Dialog.Description>
           {matchParticipant(editingMatch, 'home').name} – {matchParticipant(editingMatch, 'away')
             .name}
@@ -171,56 +204,160 @@
         method="POST"
         action="?/update"
         class="space-y-3"
-        use:enhance={() => {
+        use:enhance={({ cancel, formData }) => {
           loading = true;
-          return async ({ update }) => {
-            update();
+          const homeGoals = parseInt(formData.get('home_goals')?.toString() || '0', 10);
+          const awayGoals = parseInt(formData.get('away_goals')?.toString() || '0', 10);
+          const finished = formData.get('finished') === 'true';
+          const winnerId = formData.get('winner_id')?.toString().trim();
+          const needsAdvancer =
+            !editingMatch?.groupStage && finished && homeGoals === awayGoals && !winnerId;
+
+          if (needsAdvancer && editStep === 'form') {
+            cancel();
             loading = false;
-            editingMatch = null;
-            editOpen = false;
+            editStep = 'advancer';
+            return;
+          }
+
+          return async ({ result, update }) => {
+            if (result.type === 'failure' && result.data?.needsAdvancer) {
+              editStep = 'advancer';
+              loading = false;
+              await update();
+              return;
+            }
+            await update();
+            loading = false;
+            if (result.type === 'success') {
+              editingMatch = null;
+              editOpen = false;
+              editStep = 'form';
+              editWinnerId = '';
+            }
           };
         }}
       >
         <input type="hidden" name="match_id" value={editingMatch.match_id} />
-        <div class="space-y-2">
-          <Label>Aloitusaika</Label>
-          <Input
-            name="starts_at"
-            type="datetime-local"
-            value={toDatetimeLocal(form?.starts_at ?? editingMatch?.starts_at)}
-          />
-        </div>
-        <div class="grid grid-cols-2 gap-3">
+        <input type="hidden" name="starts_at" value={editStartsAt} />
+        <input type="hidden" name="home_goals" value={editHomeGoals} />
+        <input type="hidden" name="away_goals" value={editAwayGoals} />
+        {#if editFinished}
+          <input type="hidden" name="finished" value="true" />
+        {/if}
+        {#if editWinnerId}
+          <input type="hidden" name="winner_id" value={editWinnerId} />
+        {/if}
+
+        {#if editStep === 'form'}
           <div class="space-y-2">
-            <Label>Koti maalit</Label>
-            <Input
-              name="home_goals"
-              type="number"
-              min="0"
-              value={form?.home_goals ?? editingMatch?.home_goals}
-            />
+            <Label for="edit-starts-at">Aloitusaika</Label>
+            <Input id="edit-starts-at" type="datetime-local" bind:value={editStartsAt} />
           </div>
-          <div class="space-y-2">
-            <Label>Vieras maalit</Label>
-            <Input
-              name="away_goals"
-              type="number"
-              min="0"
-              value={form?.away_goals ?? editingMatch?.away_goals}
-            />
+          <div class="grid grid-cols-2 gap-3">
+            <div class="space-y-2">
+              <Label for="edit-home-goals">Koti maalit</Label>
+              <Input
+                id="edit-home-goals"
+                type="number"
+                min="0"
+                bind:value={editHomeGoals}
+              />
+            </div>
+            <div class="space-y-2">
+              <Label for="edit-away-goals">Vieras maalit</Label>
+              <Input
+                id="edit-away-goals"
+                type="number"
+                min="0"
+                bind:value={editAwayGoals}
+              />
+            </div>
           </div>
-        </div>
-        <label class="flex items-center gap-2 text-sm">
-          <input
-            name="finished"
-            type="checkbox"
-            value="true"
-            checked={form?.finished ?? editingMatch?.finished ?? false}
-            class="h-4 w-4 rounded border-input"
-          />
-          Ottelu päättynyt (laskee pisteet)
-        </label>
-        <Button class="w-full" {loading} type="submit">Tallenna</Button>
+          <label class="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              bind:checked={editFinished}
+              class="h-4 w-4 rounded border-input"
+            />
+            Ottelu päättynyt (laskee pisteet)
+          </label>
+          {#if !editingMatch.groupStage && editFinished && editHomeGoals === editAwayGoals}
+            <p class="text-xs text-muted-foreground">
+              Tasapeli karsintavaiheessa: tallennuksen jälkeen valitset jatkoon pääsevän joukkueen
+              (esim. rankaisuissa).
+            </p>
+          {/if}
+          <Button class="w-full" {loading} type="submit">Tallenna</Button>
+        {:else}
+          <p class="text-sm">
+            Ottelu #{editingMatch.match_number} päättyi tasapeliin
+            <span class="font-semibold tabular-nums">{editHomeGoals}–{editAwayGoals}</span>
+            (90 min). Kumpi joukkue etenee seuraavalle kierrokselle?
+          </p>
+          <div class="grid grid-cols-1 gap-2">
+            {#if editingMatch.home?.team_id}
+              <Button
+                type="button"
+                variant={editWinnerId === String(editingMatch.home.team_id) ? 'default' : 'outline'}
+                class="h-auto justify-start gap-3 py-3"
+                on:click={() => selectAdvancer(editingMatch.home!.team_id)}
+              >
+                <TeamFlag
+                  countryCode={editingMatch.home.country_code}
+                  name={editingMatch.home.name}
+                  width={28}
+                  height={28}
+                  class="h-7 w-7 rounded-full object-cover"
+                />
+                {editingMatch.home.name}
+              </Button>
+            {/if}
+            {#if editingMatch.away?.team_id}
+              <Button
+                type="button"
+                variant={editWinnerId === String(editingMatch.away.team_id) ? 'default' : 'outline'}
+                class="h-auto justify-start gap-3 py-3"
+                on:click={() => selectAdvancer(editingMatch.away!.team_id)}
+              >
+                <TeamFlag
+                  countryCode={editingMatch.away.country_code}
+                  name={editingMatch.away.name}
+                  width={28}
+                  height={28}
+                  class="h-7 w-7 rounded-full object-cover"
+                />
+                {editingMatch.away.name}
+              </Button>
+            {/if}
+          </div>
+          {#if !editingMatch.home?.team_id || !editingMatch.away?.team_id}
+            <Alert variant="destructive">
+              Molempien joukkueiden täytyy olla tiedossa ennen tasapelituloksen tallennusta.
+            </Alert>
+          {/if}
+          <div class="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              class="flex-1"
+              on:click={() => {
+                editStep = 'form';
+                editWinnerId = '';
+              }}
+            >
+              Takaisin
+            </Button>
+            <Button
+              class="flex-1"
+              {loading}
+              type="submit"
+              disabled={!editWinnerId || !editingMatch.home?.team_id || !editingMatch.away?.team_id}
+            >
+              Tallenna
+            </Button>
+          </div>
+        {/if}
       </form>
     {/if}
   </Dialog.Content>
@@ -255,12 +392,7 @@
               </Button>
             </DropdownMenu.Trigger>
             <DropdownMenu.Content align="end">
-              <DropdownMenu.Item
-                on:click={() => {
-                  editingMatch = match;
-                  editOpen = true;
-                }}
-              >
+              <DropdownMenu.Item on:click={() => openEditMatch(match)}>
                 <Pencil class="mr-2 size-4" />
                 Muokkaa
               </DropdownMenu.Item>

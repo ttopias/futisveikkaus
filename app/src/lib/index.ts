@@ -22,6 +22,7 @@ export type Match = {
   home_goals: number;
   away_goals: number;
   finished: boolean;
+  winner_id?: number | null;
   index?: number;
   groupStage?: boolean;
   group?: string;
