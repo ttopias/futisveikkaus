@@ -61,7 +61,7 @@
   let editHomeGoals = 0;
   let editAwayGoals = 0;
   let editFinished = false;
-  let editWinnerId = '';
+  let editAdvancerId = '';
 
   function openEditMatch(match: Match) {
     editingMatch = match;
@@ -70,12 +70,12 @@
     editHomeGoals = match.home_goals;
     editAwayGoals = match.away_goals;
     editFinished = match.finished;
-    editWinnerId = match.winner_id ? String(match.winner_id) : '';
+    editAdvancerId = '';
     editOpen = true;
   }
 
   function selectAdvancer(teamId: number) {
-    editWinnerId = String(teamId);
+    editAdvancerId = String(teamId);
   }
 </script>
 
@@ -181,7 +181,7 @@
     if (!open) {
       editingMatch = null;
       editStep = 'form';
-      editWinnerId = '';
+      editAdvancerId = '';
     }
   }}
 >
@@ -209,9 +209,9 @@
           const homeGoals = parseInt(formData.get('home_goals')?.toString() || '0', 10);
           const awayGoals = parseInt(formData.get('away_goals')?.toString() || '0', 10);
           const finished = formData.get('finished') === 'true';
-          const winnerId = formData.get('winner_id')?.toString().trim();
+          const advancerId = formData.get('advancer_team_id')?.toString().trim();
           const needsAdvancer =
-            !editingMatch?.groupStage && finished && homeGoals === awayGoals && !winnerId;
+            !editingMatch?.groupStage && finished && homeGoals === awayGoals && !advancerId;
 
           if (needsAdvancer && editStep === 'form') {
             cancel();
@@ -233,7 +233,7 @@
               editingMatch = null;
               editOpen = false;
               editStep = 'form';
-              editWinnerId = '';
+              editAdvancerId = '';
             }
           };
         }}
@@ -245,8 +245,8 @@
         {#if editFinished}
           <input type="hidden" name="finished" value="true" />
         {/if}
-        {#if editWinnerId}
-          <input type="hidden" name="winner_id" value={editWinnerId} />
+        {#if editAdvancerId}
+          <input type="hidden" name="advancer_team_id" value={editAdvancerId} />
         {/if}
 
         {#if editStep === 'form'}
@@ -299,7 +299,7 @@
             {#if editingMatch.home?.team_id}
               <Button
                 type="button"
-                variant={editWinnerId === String(editingMatch.home.team_id) ? 'default' : 'outline'}
+                variant={editAdvancerId === String(editingMatch.home.team_id) ? 'default' : 'outline'}
                 class="h-auto justify-start gap-3 py-3"
                 on:click={() => selectAdvancer(editingMatch.home!.team_id)}
               >
@@ -316,7 +316,7 @@
             {#if editingMatch.away?.team_id}
               <Button
                 type="button"
-                variant={editWinnerId === String(editingMatch.away.team_id) ? 'default' : 'outline'}
+                variant={editAdvancerId === String(editingMatch.away.team_id) ? 'default' : 'outline'}
                 class="h-auto justify-start gap-3 py-3"
                 on:click={() => selectAdvancer(editingMatch.away!.team_id)}
               >
@@ -343,7 +343,7 @@
               class="flex-1"
               on:click={() => {
                 editStep = 'form';
-                editWinnerId = '';
+                editAdvancerId = '';
               }}
             >
               Takaisin
@@ -352,7 +352,7 @@
               class="flex-1"
               {loading}
               type="submit"
-              disabled={!editWinnerId || !editingMatch.home?.team_id || !editingMatch.away?.team_id}
+              disabled={!editAdvancerId || !editingMatch.home?.team_id || !editingMatch.away?.team_id}
             >
               Tallenna
             </Button>

@@ -18,8 +18,7 @@ export const load: PageServerLoad = async ({ locals: { supabase } }) => {
     ${MATCH_PARTICIPANT_DISPLAY_SELECT},
     home_goals,
     away_goals,
-    finished,
-    winner_id
+    finished
   `,
       )
       .neq('stage', 'group')

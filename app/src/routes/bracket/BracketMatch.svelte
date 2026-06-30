@@ -53,10 +53,7 @@
 
   function isWinner(side: Side): boolean {
     if (!match.finished) return false;
-    const teamId = side === 'home' ? match.home?.team_id : match.away?.team_id;
-    if (match.home_goals === match.away_goals) {
-      return Boolean(match.winner_id && teamId && match.winner_id === teamId);
-    }
+    if (match.home_goals === match.away_goals) return false;
     return side === 'home' ? match.home_goals > match.away_goals : match.away_goals > match.home_goals;
   }
 

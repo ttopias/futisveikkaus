@@ -36,7 +36,6 @@ CREATE TABLE matches (
     home_goals int DEFAULT 0 NOT NULL,
     away_goals int DEFAULT 0 NOT NULL,
     finished boolean DEFAULT false NOT NULL,
-    winner_id int REFERENCES teams(team_id),
     CONSTRAINT matches_home_slot_format CHECK (
         home_slot IS NULL OR home_slot ~ '^(winner|loser):\d+$|^[123][A-L]+$'
     ),

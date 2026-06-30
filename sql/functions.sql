@@ -427,7 +427,6 @@ DECLARE
     feeder_home_id int;
     feeder_away_id int;
     feeder_finished boolean;
-    feeder_winner_id int;
 BEGIN
     IF p_slot IS NULL OR p_slot !~ '^(winner|loser):\d+$' THEN
         RETURN NULL;
@@ -436,8 +435,8 @@ BEGIN
     side := substring(p_slot from '^(winner|loser)');
     feeder_num := substring(p_slot from ':(\d+)$')::int;
 
-    SELECT home_goals, away_goals, home_id, away_id, finished, winner_id
-    INTO feeder_home_goals, feeder_away_goals, feeder_home_id, feeder_away_id, feeder_finished, feeder_winner_id
+    SELECT home_goals, away_goals, home_id, away_id, finished
+    INTO feeder_home_goals, feeder_away_goals, feeder_home_id, feeder_away_id, feeder_finished
     FROM matches
     WHERE match_number = feeder_num;
 
@@ -446,15 +445,6 @@ BEGIN
     END IF;
 
     IF feeder_home_goals = feeder_away_goals THEN
-        IF feeder_winner_id IS NOT NULL THEN
-            IF side = 'winner' THEN
-                RETURN feeder_winner_id;
-            END IF;
-            IF feeder_winner_id = feeder_home_id THEN
-                RETURN feeder_away_id;
-            END IF;
-            RETURN feeder_home_id;
-        END IF;
         RETURN NULL;
     END IF;
 
