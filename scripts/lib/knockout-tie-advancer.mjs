@@ -1,13 +1,3 @@
-/** @typedef {{ match_id: number, home_slot: string | null, away_slot: string | null, home_id: number | null, away_id: number | null }} DownstreamKnockoutMatch */
-/** @typedef {{ match_id: number, home_id?: number, away_id?: number }} KnockoutTieAdvancerPatch */
-
-/**
- * @param {number} feederMatchNumber
- * @param {number} advancerTeamId
- * @param {number} loserTeamId
- * @param {DownstreamKnockoutMatch[]} downstreamMatches
- * @returns {KnockoutTieAdvancerPatch[]}
- */
 export function computeKnockoutTieAdvancerPatches(
   feederMatchNumber,
   advancerTeamId,
@@ -16,11 +6,9 @@ export function computeKnockoutTieAdvancerPatches(
 ) {
   const winnerSlot = `winner:${feederMatchNumber}`;
   const loserSlot = `loser:${feederMatchNumber}`;
-  /** @type {KnockoutTieAdvancerPatch[]} */
   const patches = [];
 
   for (const match of downstreamMatches) {
-    /** @type {KnockoutTieAdvancerPatch} */
     const patch = { match_id: match.match_id };
 
     if (match.home_slot === winnerSlot) {
@@ -51,13 +39,6 @@ export function computeKnockoutTieAdvancerPatches(
   return patches;
 }
 
-/**
- * @param {import('@supabase/supabase-js').SupabaseClient} client
- * @param {number} feederMatchNumber
- * @param {number} advancerTeamId
- * @param {number} loserTeamId
- * @returns {Promise<number>}
- */
 export async function applyKnockoutTieAdvancer(client, feederMatchNumber, advancerTeamId, loserTeamId) {
   const winnerSlot = `winner:${feederMatchNumber}`;
   const loserSlot = `loser:${feederMatchNumber}`;
@@ -81,13 +62,17 @@ export async function applyKnockoutTieAdvancer(client, feederMatchNumber, advanc
     downstream ?? [],
   );
 
-  for (const patch of patches) {
-    const { match_id, ...update } = patch;
-    const res = await client.from('matches').update(update).eq('match_id', match_id);
-    if (res.error) {
-      throw new Error(res.error.message);
-    }
-  }
+  await Promise.all(
+    patches.map(({ match_id, ...update }) =>
+      client
+        .from('matches')
+        .update(update)
+        .eq('match_id', match_id)
+        .then(({ error: updateError }) => {
+          if (updateError) throw new Error(updateError.message);
+        }),
+    ),
+  );
 
   return patches.length;
 }

@@ -244,7 +244,7 @@ After a new CSV group result (and 180 min past kickoff): `results.updated` ≥ 1
 
 ## Match results (`update-match-results.mjs`)
 
-Updates **only** `home_goals`, `away_goals`, and `finished` on existing **group-stage** `matches` rows, keyed by `match_number`. Knockout (`r32` … `final`) scores are **not** auto-synced — enter 90-minute full-time results in admin (`/admin/matches`). For tied knockout matches, admin picks the advancing team on save; the app sets downstream `home_id` / `away_id` on `winner:N` / `loser:N` slots directly (no extra DB column). Uses the same [Fixture Download UTC CSV](https://fixturedownload.com/download/fifa-world-cup-2026-UTC.csv) as `scrape-wikipedia.mjs`. Does not change teams, slots, kickoff times, or knockout participants.
+Updates **only** `home_goals`, `away_goals`, and `finished` on existing **group-stage** `matches` rows, keyed by `match_number`. Knockout (`r32` … `final`) scores are **not** auto-synced — enter 90-minute full-time results in admin. Uses the same [Fixture Download UTC CSV](https://fixturedownload.com/download/fifa-world-cup-2026-UTC.csv) as `scrape-wikipedia.mjs`. Does not change teams, slots, kickoff times, or knockout participants.
 
 For the usual cron workflow (participants + group results), use **`sync-tournament.mjs`** or the HTTP cron route instead.
 

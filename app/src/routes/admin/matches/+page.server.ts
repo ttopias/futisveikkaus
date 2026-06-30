@@ -1,12 +1,12 @@
 import type { Match, Team } from '$lib/index';
 import { MATCH_PARTICIPANT_SELECT } from '$lib/match-participants';
-import { applyKnockoutTieAdvancer } from '$lib/server/knockout-tie-advancer';
 import { enrichMatchesWithStageDisplay } from '$lib/stages';
 import { sortByDateTime } from '$lib/utils';
 import { requireAdmin } from '$lib/server/requireAdmin';
 import { supabaseAdminClient } from '$lib/server/supabaseAdminClient';
 import type { Actions, PageServerLoad } from './$types';
 import { error, fail } from '@sveltejs/kit';
+import { applyKnockoutTieAdvancer } from '../../../../scripts/lib/knockout-tie-advancer.mjs';
 
 function parseOptionalTeamId(value: FormDataEntryValue | null): number | null {
   const raw = value?.toString().trim();
@@ -135,36 +135,17 @@ export const actions: Actions = {
     const { match_number, stage, home_id: existingHomeId, away_id: existingAwayId } = existingRes.data;
     const isKnockout = stage !== 'group';
     const isTie = home_goals === away_goals;
+    const tiedKnockout = isKnockout && finished && isTie;
 
-    if (isKnockout && finished && isTie) {
+    if (tiedKnockout) {
       if (!existingHomeId || !existingAwayId) {
-        return fail(400, {
-          error: 'Tasapelissä molempien joukkueiden täytyy olla tiedossa ennen tuloksen tallennusta.',
-          match_id,
-          home_goals,
-          away_goals,
-          finished,
-        });
+        return fail(400, { error: 'Molemmat joukkueet täytyy olla tiedossa.' });
       }
       if (!advancer_team_id) {
-        return fail(400, {
-          error: 'Valitse jatkoon pääsevä joukkue.',
-          needsAdvancer: true,
-          match_id,
-          home_goals,
-          away_goals,
-          finished,
-        });
+        return fail(400, { error: 'Valitse jatkoon pääsevä joukkue.' });
       }
       if (advancer_team_id !== existingHomeId && advancer_team_id !== existingAwayId) {
-        return fail(400, {
-          error: 'Jatkoon valittu joukkue ei ole tässä ottelussa.',
-          needsAdvancer: true,
-          match_id,
-          home_goals,
-          away_goals,
-          finished,
-        });
+        return fail(400, { error: 'Valittu joukkue ei ole tässä ottelussa.' });
       }
     }
 
@@ -181,42 +162,28 @@ export const actions: Actions = {
 
     if (res.error) {
       console.error('Update failed:', res.error);
-      return fail(422, {
-        error: res.error.message,
-        match_id,
-        home_goals,
-        away_goals,
-        finished,
-      });
+      return fail(422, { error: res.error.message });
     }
 
-    if (isKnockout && finished && isTie && advancer_team_id && existingHomeId && existingAwayId) {
+    if (tiedKnockout && advancer_team_id) {
       const loserTeamId =
-        advancer_team_id === existingHomeId ? existingAwayId : existingHomeId;
+        advancer_team_id === existingHomeId ? existingAwayId! : existingHomeId!;
       try {
-        await applyKnockoutTieAdvancer(match_number, advancer_team_id, loserTeamId);
+        await applyKnockoutTieAdvancer(
+          supabaseAdminClient,
+          match_number,
+          advancer_team_id,
+          loserTeamId,
+        );
       } catch (err) {
         console.error('Knockout tie advancer failed:', err);
         return fail(422, {
-          error:
-            'Tulos tallennettiin, mutta seuraavan kierroksen joukkueita ei voitu päivittää. Yritä tallentaa uudelleen.',
-          match_id,
-          home_goals,
-          away_goals,
-          finished,
-          needsAdvancer: true,
+          error: 'Tulos tallennettiin, mutta jatko-otteluita ei voitu päivittää. Yritä uudelleen.',
         });
       }
     }
 
-    return {
-      success: 'Ottelu päivitetty',
-      match_id,
-      starts_at,
-      home_goals,
-      away_goals,
-      finished,
-    };
+    return { success: 'Ottelu päivitetty' };
   },
 
   delete: async ({ request, locals: { safeGetSession } }) => {
